@@ -1,11 +1,32 @@
-<script setup></script>
-
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div id="app">
+    <NavBar />
+    <div class="container mt-4">
+      <Form @formSubmitted="addUser" />
+      <Dashboard :users="users" />
+    </div>
+  </div>
 </template>
 
-<style scoped></style>
+<script setup>
+import { ref } from "vue";
+import NavBar from "./components/NavBar.vue";
+import Form from "./components/Form.vue";
+import Dashboard from "./components/Dashboard.vue";
+
+// State to hold dynamic data
+const users = ref([]);
+
+// Add user from form submission
+const addUser = (user) => {
+  users.value.push(user);
+  // Save to LocalStorage (persistence beyond session ✅)
+  localStorage.setItem("users", JSON.stringify(users.value));
+};
+
+// Load existing users if any
+const storedUsers = localStorage.getItem("users");
+if (storedUsers) {
+  users.value = JSON.parse(storedUsers);
+}
+</script>
