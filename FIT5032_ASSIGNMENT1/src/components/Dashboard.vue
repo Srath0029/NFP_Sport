@@ -20,3 +20,12 @@
     <p v-else>No users registered yet.</p>
   </div>
 </template>
+
+<script setup>
+defineProps({
+  users: {
+    type: Array,
+    required: true,
+  },
+});
+</script>
