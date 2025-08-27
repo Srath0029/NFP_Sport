@@ -15,3 +15,17 @@
         />
         <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
       </div>
+
+            <!-- Email Field -->
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input
+          type="email"
+          id="email"
+          v-model="email"
+          class="form-control"
+          :class="{ 'is-invalid': errors.email }"
+          required
+        />
+        <div v-if="errors.email" class="invalid-feedback">{{ errors.email }}</div>
+      </div>
