@@ -2,21 +2,35 @@
   <div class="card p-4 mb-4 shadow-sm">
     <h3>Register User</h3>
     <form @submit.prevent="handleSubmit" novalidate>
-      <!-- Name Field -->
+      <!-- First Name Field -->
       <div class="mb-3">
-        <label for="name" class="form-label">Name</label>
+        <label for="firstName" class="form-label">First Name</label>
         <input
           type="text"
-          id="name"
-          v-model="name"
+          id="firstName"
+          v-model="firstName"
           class="form-control"
-          :class="{ 'is-invalid': errors.name }"
+          :class="{ 'is-invalid': errors.firstName }"
           required
         />
-        <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
+        <div v-if="errors.firstName" class="invalid-feedback">{{ errors.firstName }}</div>
       </div>
 
-            <!-- Email Field -->
+      <!-- Last Name Field -->
+      <div class="mb-3">
+        <label for="lastName" class="form-label">Last Name</label>
+        <input
+          type="text"
+          id="lastName"
+          v-model="lastName"
+          class="form-control"
+          :class="{ 'is-invalid': errors.lastName }"
+          required
+        />
+        <div v-if="errors.lastName" class="invalid-feedback">{{ errors.lastName }}</div>
+      </div>
+
+      <!-- Email Field -->
       <div class="mb-3">
         <label for="email" class="form-label">Email</label>
         <input
@@ -30,7 +44,7 @@
         <div v-if="errors.email" class="invalid-feedback">{{ errors.email }}</div>
       </div>
 
-            <!-- Age Field -->
+      <!-- Age Field -->
       <div class="mb-3">
         <label for="age" class="form-label">Age</label>
         <input
@@ -53,7 +67,8 @@
 <script setup>
 import { ref } from "vue";
 
-const name = ref("");
+const firstName = ref("");
+const lastName = ref("");
 const email = ref("");
 const age = ref(null);
 const errors = ref({});
@@ -64,8 +79,12 @@ const validate = () => {
   errors.value = {};
   let valid = true;
 
-  if (!name.value.trim()) {
-    errors.value.name = "Name is required.";
+  if (!firstName.value.trim() || firstName.value.length < 2) {
+    errors.value.firstName = "First name must be at least 2 characters.";
+    valid = false;
+  }
+  if (!lastName.value.trim() || lastName.value.length < 2) {
+    errors.value.lastName = "Last name must be at least 2 characters.";
     valid = false;
   }
   if (!email.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
@@ -83,11 +102,13 @@ const validate = () => {
 const handleSubmit = () => {
   if (validate()) {
     emit("formSubmitted", {
-      name: name.value,
+      firstName: firstName.value,
+      lastName: lastName.value,
       email: email.value,
       age: age.value,
     });
-    name.value = "";
+    firstName.value = "";
+    lastName.value = "";
     email.value = "";
     age.value = null;
   }
