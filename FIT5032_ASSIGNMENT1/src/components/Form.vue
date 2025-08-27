@@ -44,3 +44,52 @@
         />
         <div v-if="errors.age" class="invalid-feedback">{{ errors.age }}</div>
       </div>
+
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+
+const name = ref("");
+const email = ref("");
+const age = ref(null);
+const errors = ref({});
+
+const emit = defineEmits(["formSubmitted"]);
+
+const validate = () => {
+  errors.value = {};
+  let valid = true;
+
+  if (!name.value.trim()) {
+    errors.value.name = "Name is required.";
+    valid = false;
+  }
+  if (!email.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+    errors.value.email = "Enter a valid email address.";
+    valid = false;
+  }
+  if (!age.value || age.value < 1 || age.value > 120) {
+    errors.value.age = "Age must be between 1 and 120.";
+    valid = false;
+  }
+
+  return valid;
+};
+
+const handleSubmit = () => {
+  if (validate()) {
+    emit("formSubmitted", {
+      name: name.value,
+      email: email.value,
+      age: age.value,
+    });
+    name.value = "";
+    email.value = "";
+    age.value = null;
+  }
+};
+</script>
