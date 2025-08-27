@@ -29,3 +29,18 @@
         />
         <div v-if="errors.email" class="invalid-feedback">{{ errors.email }}</div>
       </div>
+
+            <!-- Age Field -->
+      <div class="mb-3">
+        <label for="age" class="form-label">Age</label>
+        <input
+          type="number"
+          id="age"
+          v-model.number="age"
+          class="form-control"
+          :class="{ 'is-invalid': errors.age }"
+          min="1"
+          max="120"
+        />
+        <div v-if="errors.age" class="invalid-feedback">{{ errors.age }}</div>
+      </div>
