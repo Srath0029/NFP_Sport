@@ -4,6 +4,23 @@
     <div class="container mt-4">
       <Form @formSubmitted="addUser" />
       <Dashboard :users="users" @deleteUser="removeUser" />
+      <!-- About Section -->
+<div id="about" class="container mt-5">
+  <h2>About</h2>
+  <p>
+    This non-profit web application promotes community health and wellbeing
+    through sport. It helps members register, connect, and share resources.
+  </p>
+</div>
+
+<!-- Contact Section -->
+<div id="contact" class="container mt-5">
+  <h2>Contact Us</h2>
+  <p>
+    Have questions? Reach out at <strong>info@nfp-example.org</strong> or visit
+    us in Melbourne.
+  </p>
+</div>
     </div>
   </div>
 </template>
