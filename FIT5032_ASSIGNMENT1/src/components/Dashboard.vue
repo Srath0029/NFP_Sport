@@ -11,7 +11,7 @@
       </thead>
       <tbody>
         <tr v-for="(user, index) in users" :key="index">
-          <td>{{ user.name }}</td>
+          <td>{{ user.firstName }} {{ user.lastName }}</td>
           <td>{{ user.email }}</td>
           <td>{{ user.age }}</td>
         </tr>
