@@ -19,8 +19,13 @@ const users = ref([]);
 
 // Add user from form submission
 const addUser = (user) => {
-  users.value.push(user);
-  // Save to LocalStorage (persistence beyond session ✅)
+  users.value.push({
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    age: user.age,
+  });
+  // Save to LocalStorage (persistence beyond session)
   localStorage.setItem("users", JSON.stringify(users.value));
 };
 
