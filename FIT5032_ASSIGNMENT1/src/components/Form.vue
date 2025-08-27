@@ -12,13 +12,14 @@
             type="text"
             v-model.trim="firstName"
             class="form-control"
-            :class="{ 'is-invalid': showError('firstName') }"
-            required
+            :class="{ 'is-invalid': touched.firstName && errors.firstName }"
             autocomplete="given-name"
-            @input="touchAndValidate('firstName')"
-            @blur="touchAndValidate('firstName')"
+            @input="validateField('firstName')"
+            @blur="touch('firstName')"
           />
-          <div class="invalid-feedback" v-if="showError('firstName')">{{ errors.firstName }}</div>
+          <div class="invalid-feedback" v-if="touched.firstName && errors.firstName">
+            {{ errors.firstName }}
+          </div>
         </div>
 
         <div class="col-md-6 mb-3">
@@ -28,13 +29,14 @@
             type="text"
             v-model.trim="lastName"
             class="form-control"
-            :class="{ 'is-invalid': showError('lastName') }"
-            required
+            :class="{ 'is-invalid': touched.lastName && errors.lastName }"
             autocomplete="family-name"
-            @input="touchAndValidate('lastName')"
-            @blur="touchAndValidate('lastName')"
+            @input="validateField('lastName')"
+            @blur="touch('lastName')"
           />
-          <div class="invalid-feedback" v-if="showError('lastName')">{{ errors.lastName }}</div>
+          <div class="invalid-feedback" v-if="touched.lastName && errors.lastName">
+            {{ errors.lastName }}
+          </div>
         </div>
       </div>
 
@@ -47,17 +49,16 @@
             type="text"
             v-model.trim="username"
             class="form-control"
-            :class="{ 'is-invalid': showError('username') }"
+            :class="{ 'is-invalid': touched.username && errors.username }"
             placeholder="min 3 characters; letters/numbers/._-"
-            required
-            pattern="^[A-Za-z0-9._-]+$"
-            aria-describedby="userHelp"
             autocomplete="username"
-            @input="touchAndValidate('username')"
-            @blur="touchAndValidate('username')"
+            @input="validateField('username')"
+            @blur="touch('username')"
           />
-          <small id="userHelp" class="text-muted">Allowed: letters, numbers, dot, underscore, hyphen</small>
-          <div class="invalid-feedback" v-if="showError('username')">{{ errors.username }}</div>
+          <small class="text-muted">Allowed: letters, numbers, dot, underscore, hyphen</small>
+          <div class="invalid-feedback" v-if="touched.username && errors.username">
+            {{ errors.username }}
+          </div>
         </div>
 
         <div class="col-md-6 mb-3">
@@ -65,16 +66,16 @@
           <input
             id="email"
             type="email"
-            inputmode="email"
             v-model.trim="email"
             class="form-control"
-            :class="{ 'is-invalid': showError('email') }"
-            required
+            :class="{ 'is-invalid': touched.email && errors.email }"
             autocomplete="email"
-            @input="touchAndValidate('email')"
-            @blur="touchAndValidate('email')"
+            @input="validateField('email')"
+            @blur="touch('email')"
           />
-          <div class="invalid-feedback" v-if="showError('email')">{{ errors.email }}</div>
+          <div class="invalid-feedback" v-if="touched.email && errors.email">
+            {{ errors.email }}
+          </div>
         </div>
       </div>
 
@@ -87,26 +88,20 @@
             type="password"
             v-model="password"
             class="form-control"
-            :class="{ 'is-invalid': showError('password') }"
+            :class="{ 'is-invalid': touched.password && errors.password }"
             placeholder="min 8 chars incl. a number"
-            required
             autocomplete="new-password"
-            @input="touchAndValidate('password'); touchAndValidate('confirmPassword')"
-            @blur="touchAndValidate('password')"
+            @input="() => { validateField('password'); validateField('confirmPassword'); }"
+            @blur="touch('password')"
           />
-          <div class="invalid-feedback" v-if="showError('password')">{{ errors.password }}</div>
+          <div class="invalid-feedback" v-if="touched.password && errors.password">
+            {{ errors.password }}
+          </div>
 
-          <!-- Strength meter -->
+          <!-- Strength meter (simple) -->
           <div class="mt-2">
             <div class="progress" style="height: 6px;">
-              <div
-                class="progress-bar"
-                role="progressbar"
-                :style="{ width: strength + '%' }"
-                :aria-valuenow="strength"
-                aria-valuemin="0"
-                aria-valuemax="100"
-              ></div>
+              <div class="progress-bar" role="progressbar" :style="{ width: strength + '%' }"></div>
             </div>
             <small class="text-muted">Password strength</small>
           </div>
@@ -119,13 +114,14 @@
             type="password"
             v-model="confirmPassword"
             class="form-control"
-            :class="{ 'is-invalid': showError('confirmPassword') }"
-            required
+            :class="{ 'is-invalid': touched.confirmPassword && errors.confirmPassword }"
             autocomplete="new-password"
-            @input="touchAndValidate('confirmPassword')"
-            @blur="touchAndValidate('confirmPassword')"
+            @input="validateField('confirmPassword')"
+            @blur="touch('confirmPassword')"
           />
-          <div class="invalid-feedback" v-if="showError('confirmPassword')">{{ errors.confirmPassword }}</div>
+          <div class="invalid-feedback" v-if="touched.confirmPassword && errors.confirmPassword">
+            {{ errors.confirmPassword }}
+          </div>
         </div>
       </div>
 
@@ -136,17 +132,16 @@
           <input
             id="age"
             type="number"
-            inputmode="numeric"
             v-model.number="age"
             class="form-control"
-            :class="{ 'is-invalid': showError('age') }"
-            min="13"
-            max="120"
-            required
-            @input="touchAndValidate('age')"
-            @blur="touchAndValidate('age')"
+            :class="{ 'is-invalid': touched.age && errors.age }"
+            min="13" max="120"
+            @input="validateField('age')"
+            @blur="touch('age')"
           />
-          <div class="invalid-feedback" v-if="showError('age')">{{ errors.age }}</div>
+          <div class="invalid-feedback" v-if="touched.age && errors.age">
+            {{ errors.age }}
+          </div>
         </div>
 
         <div class="col-md-6 mb-3">
@@ -156,14 +151,14 @@
             type="text"
             v-model.trim="location"
             class="form-control"
-            :class="{ 'is-invalid': showError('location') }"
+            :class="{ 'is-invalid': touched.location && errors.location }"
             placeholder="e.g., Footscray"
-            required
-            autocomplete="address-level2"
-            @input="touchAndValidate('location')"
-            @blur="touchAndValidate('location')"
+            @input="validateField('location')"
+            @blur="touch('location')"
           />
-          <div class="invalid-feedback" v-if="showError('location')">{{ errors.location }}</div>
+          <div class="invalid-feedback" v-if="touched.location && errors.location">
+            {{ errors.location }}
+          </div>
         </div>
       </div>
 
@@ -175,10 +170,9 @@
             id="gender"
             v-model="gender"
             class="form-select"
-            :class="{ 'is-invalid': showError('gender') }"
-            required
-            @change="touchAndValidate('gender')"
-            @blur="touchAndValidate('gender')"
+            :class="{ 'is-invalid': touched.gender && errors.gender }"
+            @change="validateField('gender')"
+            @blur="touch('gender')"
           >
             <option disabled value="">Please select</option>
             <option>Female</option>
@@ -187,7 +181,9 @@
             <option>Prefer not to say</option>
             <option>Other</option>
           </select>
-          <div class="invalid-feedback" v-if="showError('gender')">{{ errors.gender }}</div>
+          <div class="invalid-feedback" v-if="touched.gender && errors.gender">
+            {{ errors.gender }}
+          </div>
         </div>
       </div>
 
@@ -199,21 +195,22 @@
           v-model.trim="reason"
           class="form-control"
           rows="3"
-          :class="{ 'is-invalid': showError('reason') }"
-          placeholder="Tell us briefly why you want to join…"
-          required
+          :class="{ 'is-invalid': touched.reason && errors.reason }"
+          placeholder="Tell us why you want to join…"
           maxlength="240"
-          @input="touchAndValidate('reason')"
-          @blur="touchAndValidate('reason')"
+          @input="validateField('reason')"
+          @blur="touch('reason')"
         ></textarea>
         <div class="d-flex justify-content-between">
           <small class="text-muted">Min 10 characters</small>
           <small class="text-muted">{{ reason.length }}/240</small>
         </div>
-        <div class="invalid-feedback" v-if="showError('reason')">{{ errors.reason }}</div>
+        <div class="invalid-feedback" v-if="touched.reason && errors.reason">
+          {{ errors.reason }}
+        </div>
       </div>
 
-
+      <!-- Submit stays enabled so you can demonstrate errors -->
       <button type="submit" class="btn btn-primary">Submit</button>
     </form>
   </div>
@@ -222,6 +219,7 @@
 <script setup>
 import { ref, computed } from "vue";
 
+// If App.vue passes existing usernames, accept them; otherwise default to []
 const props = defineProps({
   existingUsernames: { type: Array, default: () => [] }
 });
@@ -237,14 +235,16 @@ const location = ref("");
 const gender = ref("");
 const reason = ref("");
 
-const errors = ref({});
+const errors = ref({
+  firstName: "", lastName: "", username: "", email: "",
+  password: "", confirmPassword: "", age: "", location: "",
+  gender: "", reason: ""
+});
 const touched = ref({
   firstName: false, lastName: false, username: false, email: false,
   password: false, confirmPassword: false, age: false, location: false,
   gender: false, reason: false
 });
-
-const emit = defineEmits(["formSubmitted"]);
 
 const strength = computed(() => {
   let s = 0;
@@ -256,19 +256,19 @@ const strength = computed(() => {
   return Math.min(s, 100);
 });
 
+function touch(field) {
+  touched.value[field] = true;
+}
+
 function validateField(field) {
   switch (field) {
     case "firstName":
       errors.value.firstName =
-        !firstName.value || firstName.value.length < 2
-          ? "First name must be at least 2 characters."
-          : "";
+        !firstName.value || firstName.value.length < 2 ? "First name must be at least 2 characters." : "";
       break;
     case "lastName":
       errors.value.lastName =
-        !lastName.value || lastName.value.length < 2
-          ? "Last name must be at least 2 characters."
-          : "";
+        !lastName.value || lastName.value.length < 2 ? "Last name must be at least 2 characters." : "";
       break;
     case "username":
       if (!username.value || username.value.length < 3) {
@@ -295,15 +295,11 @@ function validateField(field) {
       break;
     case "confirmPassword":
       errors.value.confirmPassword =
-        password.value !== confirmPassword.value
-          ? "Passwords do not match."
-          : "";
+        password.value !== confirmPassword.value ? "Passwords do not match." : "";
       break;
     case "age":
       errors.value.age =
-        !age.value || age.value < 13 || age.value > 120
-          ? "Age must be between 13 and 120."
-          : "";
+        !age.value || age.value < 13 || age.value > 120 ? "Age must be between 13 and 120." : "";
       break;
     case "location":
       errors.value.location = !location.value ? "Location is required." : "";
@@ -322,18 +318,19 @@ function validateField(field) {
   }
 }
 
-function touchAndValidate(field) {
-  touched.value[field] = true;
-  validateField(field);
-}
-
 function validateAll() {
-  Object.keys(touched.value).forEach(k => { touched.value[k] = true; validateField(k); });
-  // if any error string is non-empty -> invalid
-  return Object.values(errors.value).every(v => !v);
+  // mark all as touched and validate each
+  Object.keys(touched.value).forEach((k) => {
+    touched.value[k] = true;
+    validateField(k);
+  });
+  // valid if every error string is empty
+  return Object.values(errors.value).every((v) => !v);
 }
 
-const handleSubmit = () => {
+const emit = defineEmits(["formSubmitted"]);
+
+function handleSubmit() {
   if (!validateAll()) return;
 
   emit("formSubmitted", {
@@ -341,8 +338,7 @@ const handleSubmit = () => {
     lastName: lastName.value.trim(),
     username: username.value.trim(),
     email: email.value.trim(),
-
-    password: password.value,
+    password: password.value, // only for assignment demo
     age: age.value,
     location: location.value.trim(),
     gender: gender.value,
@@ -355,7 +351,7 @@ const handleSubmit = () => {
   password.value = confirmPassword.value = "";
   age.value = null;
   location.value = gender.value = reason.value = "";
-  errors.value = {};
-  Object.keys(touched.value).forEach(k => (touched.value[k] = false));
-};
+  Object.keys(errors.value).forEach((k) => (errors.value[k] = ""));
+  Object.keys(touched.value).forEach((k) => (touched.value[k] = false));
+}
 </script>
