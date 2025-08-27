@@ -15,6 +15,8 @@
             :class="{ 'is-invalid': showError('firstName') }"
             required
             autocomplete="given-name"
+            @input="touchAndValidate('firstName')"
+            @blur="touchAndValidate('firstName')"
           />
           <div class="invalid-feedback" v-if="showError('firstName')">{{ errors.firstName }}</div>
         </div>
@@ -29,6 +31,8 @@
             :class="{ 'is-invalid': showError('lastName') }"
             required
             autocomplete="family-name"
+            @input="touchAndValidate('lastName')"
+            @blur="touchAndValidate('lastName')"
           />
           <div class="invalid-feedback" v-if="showError('lastName')">{{ errors.lastName }}</div>
         </div>
@@ -48,8 +52,9 @@
             required
             pattern="^[A-Za-z0-9._-]+$"
             aria-describedby="userHelp"
-            @blur="touched.username = true"
             autocomplete="username"
+            @input="touchAndValidate('username')"
+            @blur="touchAndValidate('username')"
           />
           <small id="userHelp" class="text-muted">Allowed: letters, numbers, dot, underscore, hyphen</small>
           <div class="invalid-feedback" v-if="showError('username')">{{ errors.username }}</div>
@@ -66,7 +71,8 @@
             :class="{ 'is-invalid': showError('email') }"
             required
             autocomplete="email"
-            @blur="touched.email = true"
+            @input="touchAndValidate('email')"
+            @blur="touchAndValidate('email')"
           />
           <div class="invalid-feedback" v-if="showError('email')">{{ errors.email }}</div>
         </div>
@@ -85,7 +91,8 @@
             placeholder="min 8 chars incl. a number"
             required
             autocomplete="new-password"
-            @blur="touched.password = true"
+            @input="touchAndValidate('password'); touchAndValidate('confirmPassword')"
+            @blur="touchAndValidate('password')"
           />
           <div class="invalid-feedback" v-if="showError('password')">{{ errors.password }}</div>
 
@@ -95,7 +102,7 @@
               <div
                 class="progress-bar"
                 role="progressbar"
-                :style="{ width: strength + '%'}"
+                :style="{ width: strength + '%' }"
                 :aria-valuenow="strength"
                 aria-valuemin="0"
                 aria-valuemax="100"
@@ -115,7 +122,8 @@
             :class="{ 'is-invalid': showError('confirmPassword') }"
             required
             autocomplete="new-password"
-            @blur="touched.confirmPassword = true"
+            @input="touchAndValidate('confirmPassword')"
+            @blur="touchAndValidate('confirmPassword')"
           />
           <div class="invalid-feedback" v-if="showError('confirmPassword')">{{ errors.confirmPassword }}</div>
         </div>
@@ -135,7 +143,8 @@
             min="13"
             max="120"
             required
-            @blur="touched.age = true"
+            @input="touchAndValidate('age')"
+            @blur="touchAndValidate('age')"
           />
           <div class="invalid-feedback" v-if="showError('age')">{{ errors.age }}</div>
         </div>
@@ -151,7 +160,8 @@
             placeholder="e.g., Footscray"
             required
             autocomplete="address-level2"
-            @blur="touched.location = true"
+            @input="touchAndValidate('location')"
+            @blur="touchAndValidate('location')"
           />
           <div class="invalid-feedback" v-if="showError('location')">{{ errors.location }}</div>
         </div>
@@ -167,7 +177,8 @@
             class="form-select"
             :class="{ 'is-invalid': showError('gender') }"
             required
-            @blur="touched.gender = true"
+            @change="touchAndValidate('gender')"
+            @blur="touchAndValidate('gender')"
           >
             <option disabled value="">Please select</option>
             <option>Female</option>
@@ -192,7 +203,8 @@
           placeholder="Tell us briefly why you want to join…"
           required
           maxlength="240"
-          @blur="touched.reason = true"
+          @input="touchAndValidate('reason')"
+          @blur="touchAndValidate('reason')"
         ></textarea>
         <div class="d-flex justify-content-between">
           <small class="text-muted">Min 10 characters</small>
@@ -201,7 +213,8 @@
         <div class="invalid-feedback" v-if="showError('reason')">{{ errors.reason }}</div>
       </div>
 
-      <button type="submit" class="btn btn-primary" :disabled="!canSubmit">Submit</button>
+
+      <button type="submit" class="btn btn-primary">Submit</button>
     </form>
   </div>
 </template>
@@ -243,129 +256,106 @@ const strength = computed(() => {
   return Math.min(s, 100);
 });
 
-const validate = () => {
-  errors.value = {};
-  let valid = true;
-
-  // Normalize some inputs
-  firstName.value = firstName.value.trim().replace(/\s+/g, " ");
-  lastName.value  = lastName.value.trim().replace(/\s+/g, " ");
-  location.value  = location.value.trim().replace(/\s+/g, " ");
-  reason.value    = reason.value.trim();
-
-  if (!firstName.value || firstName.value.length < 2) {
-    errors.value.firstName = "First name must be at least 2 characters.";
-    valid = false;
+function validateField(field) {
+  switch (field) {
+    case "firstName":
+      errors.value.firstName =
+        !firstName.value || firstName.value.length < 2
+          ? "First name must be at least 2 characters."
+          : "";
+      break;
+    case "lastName":
+      errors.value.lastName =
+        !lastName.value || lastName.value.length < 2
+          ? "Last name must be at least 2 characters."
+          : "";
+      break;
+    case "username":
+      if (!username.value || username.value.length < 3) {
+        errors.value.username = "Username must be at least 3 characters.";
+      } else if (!/^[A-Za-z0-9._-]+$/.test(username.value)) {
+        errors.value.username = "Use letters, numbers, dot, underscore, or hyphen only.";
+      } else if (props.existingUsernames.includes(username.value.toLowerCase())) {
+        errors.value.username = "Username is already taken.";
+      } else {
+        errors.value.username = "";
+      }
+      break;
+    case "email":
+      errors.value.email =
+        !email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
+          ? "Enter a valid email address."
+          : "";
+      break;
+    case "password":
+      errors.value.password =
+        !password.value || password.value.length < 8 || !/\d/.test(password.value) || strength.value < 50
+          ? "Password must be 8+ chars, include a number, and be stronger."
+          : "";
+      break;
+    case "confirmPassword":
+      errors.value.confirmPassword =
+        password.value !== confirmPassword.value
+          ? "Passwords do not match."
+          : "";
+      break;
+    case "age":
+      errors.value.age =
+        !age.value || age.value < 13 || age.value > 120
+          ? "Age must be between 13 and 120."
+          : "";
+      break;
+    case "location":
+      errors.value.location = !location.value ? "Location is required." : "";
+      break;
+    case "gender":
+      errors.value.gender = !gender.value ? "Please select a gender option." : "";
+      break;
+    case "reason":
+      errors.value.reason =
+        !reason.value || reason.value.length < 10
+          ? "Please provide at least 10 characters."
+          : reason.value.length > 240
+          ? "Maximum 240 characters."
+          : "";
+      break;
   }
-  if (!lastName.value || lastName.value.length < 2) {
-    errors.value.lastName = "Last name must be at least 2 characters.";
-    valid = false;
-  }
+}
 
-  if (!username.value || username.value.length < 3) {
-    errors.value.username = "Username must be at least 3 characters.";
-    valid = false;
-  } else if (!/^[A-Za-z0-9._-]+$/.test(username.value)) {
-    errors.value.username = "Use letters, numbers, dot, underscore, or hyphen only.";
-    valid = false;
-  } else if (props.existingUsernames.includes(username.value.toLowerCase())) {
-    errors.value.username = "Username is already taken.";
-    valid = false;
-  }
+function touchAndValidate(field) {
+  touched.value[field] = true;
+  validateField(field);
+}
 
-  if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    errors.value.email = "Enter a valid email address.";
-    valid = false;
-  }
-
-  if (!password.value || password.value.length < 8 || !/\d/.test(password.value)) {
-    errors.value.password = "Password must be 8+ characters and include a number.";
-    valid = false;
-  }
-  if (password.value !== confirmPassword.value) {
-    errors.value.confirmPassword = "Passwords do not match.";
-    valid = false;
-  }
-  if (strength.value < 50) {
-    errors.value.password = "Please choose a stronger password (mix case, add numbers/symbols).";
-    valid = false;
-  }
-
-  if (!age.value || age.value < 13 || age.value > 120) {
-    errors.value.age = "Age must be between 13 and 120.";
-    valid = false;
-  }
-
-  if (!location.value) {
-    errors.value.location = "Location is required.";
-    valid = false;
-  }
-  if (!gender.value) {
-    errors.value.gender = "Please select a gender option.";
-    valid = false;
-  }
-
-  if (!reason.value || reason.value.length < 10) {
-    errors.value.reason = "Please provide at least 10 characters.";
-    valid = false;
-  } else if (reason.value.length > 240) {
-    errors.value.reason = "Maximum 240 characters.";
-    valid = false;
-  }
-
-  return valid;
-};
-
-const canSubmit = computed(() =>
-  firstName.value.length >= 2 &&
-  lastName.value.length >= 2 &&
-  username.value.length >= 3 && /^[A-Za-z0-9._-]+$/.test(username.value) &&
-  !props.existingUsernames.includes(username.value.toLowerCase()) &&
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value) &&
-  password.value.length >= 8 && /\d/.test(password.value) &&
-  confirmPassword.value === password.value &&
-  strength.value >= 50 &&
-  age.value >= 13 && age.value <= 120 &&
-  location.value.length > 0 &&
-  !!gender.value &&
-  reason.value.length >= 10 && reason.value.length <= 240
-);
-
-const showError = (field) => touched.value[field] && !!errors.value[field];
+function validateAll() {
+  Object.keys(touched.value).forEach(k => { touched.value[k] = true; validateField(k); });
+  // if any error string is non-empty -> invalid
+  return Object.values(errors.value).every(v => !v);
+}
 
 const handleSubmit = () => {
-  // mark all as touched so errors show if any
-  Object.keys(touched.value).forEach(k => touched.value[k] = true);
+  if (!validateAll()) return;
 
-  if (!validate()) return;
-
-  // Emit the user object
   emit("formSubmitted", {
-    firstName: firstName.value,
-    lastName: lastName.value,
-    username: username.value,
-    email: email.value,
+    firstName: firstName.value.trim(),
+    lastName: lastName.value.trim(),
+    username: username.value.trim(),
+    email: email.value.trim(),
 
     password: password.value,
     age: age.value,
-    location: location.value,
+    location: location.value.trim(),
     gender: gender.value,
-    reason: reason.value,
+    reason: reason.value.trim(),
     createdAt: new Date().toISOString()
   });
 
-  // Reset form
-  firstName.value = "";
-  lastName.value = "";
-  username.value = "";
-  email.value = "";
-  password.value = "";
-  confirmPassword.value = "";
+  // reset
+  firstName.value = lastName.value = username.value = email.value = "";
+  password.value = confirmPassword.value = "";
   age.value = null;
-  location.value = "";
-  gender.value = "";
-  reason.value = "";
+  location.value = gender.value = reason.value = "";
   errors.value = {};
-  Object.keys(touched.value).forEach(k => touched.value[k] = false);
+  Object.keys(touched.value).forEach(k => (touched.value[k] = false));
 };
 </script>
