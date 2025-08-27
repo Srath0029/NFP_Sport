@@ -338,7 +338,7 @@ function handleSubmit() {
     lastName: lastName.value.trim(),
     username: username.value.trim(),
     email: email.value.trim(),
-    password: password.value, // only for assignment demo
+    password: password.value,
     age: age.value,
     location: location.value.trim(),
     gender: gender.value,
