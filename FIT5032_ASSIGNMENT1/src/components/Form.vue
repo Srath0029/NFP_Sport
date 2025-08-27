@@ -53,7 +53,7 @@
           v-model.number="age"
           class="form-control"
           :class="{ 'is-invalid': errors.age }"
-          min="1"
+          min="12"
           max="120"
         />
         <div v-if="errors.age" class="invalid-feedback">{{ errors.age }}</div>
@@ -91,8 +91,8 @@ const validate = () => {
     errors.value.email = "Enter a valid email address.";
     valid = false;
   }
-  if (!age.value || age.value < 1 || age.value > 120) {
-    errors.value.age = "Age must be between 1 and 120.";
+  if (!age.value || age.value < 12 || age.value > 120) {
+    errors.value.age = "Age must be between 12 and 120.";
     valid = false;
   }
 

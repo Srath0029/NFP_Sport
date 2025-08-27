@@ -7,13 +7,19 @@
           <th>Name</th>
           <th>Email</th>
           <th>Age</th>
+          <th>Actions</th> <!-- new column -->
         </tr>
       </thead>
       <tbody>
         <tr v-for="(user, index) in users" :key="index">
-          <td>{{ user.firstName }} {{ user.lastName }}</td>
+          <td>{{ user.name }}</td>
           <td>{{ user.email }}</td>
           <td>{{ user.age }}</td>
+          <td>
+            <button class="btn btn-sm btn-danger" @click="$emit('deleteUser', index)">
+              Delete
+            </button>
+          </td>
         </tr>
       </tbody>
     </table>
