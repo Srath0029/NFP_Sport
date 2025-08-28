@@ -330,6 +330,21 @@ function validateAll() {
 
 const emit = defineEmits(["formSubmitted"]);
 
+function clearForm() {
+  firstName.value = "";
+  lastName.value = "";
+  username.value = "";
+  email.value = "";
+  password.value = "";
+  confirmPassword.value = "";
+  age.value = null;
+  location.value = "";
+  gender.value = "";
+  reason.value = "";
+  Object.keys(errors.value).forEach((k) => (errors.value[k] = ""));
+  Object.keys(touched.value).forEach((k) => (touched.value[k] = false));
+}
+
 function handleSubmit() {
   if (!validateAll()) return;
 
