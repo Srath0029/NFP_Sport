@@ -11,7 +11,6 @@
       />
     </div>
 
-
     <template v-if="filtered.length > 0">
       <div class="table-responsive">
         <table class="table table-striped table-hover mt-1">
@@ -39,13 +38,7 @@
                 {{ user.reason }}
               </td>
               <td>
-                <button
-                  class="btn btn-sm btn-danger"
-                  @click="confirmDelete(index)"
-                  aria-label="Delete this user"
-                >
-                  Delete
-                </button>
+                <button class="btn btn-sm btn-danger" @click="confirmDelete(index)">Delete</button>
               </td>
             </tr>
           </tbody>
@@ -59,15 +52,9 @@
 </template>
 
 <script setup>
-import { ref, computed, defineEmits, defineProps, defineOptions } from "vue";
+import { ref, computed } from "vue";
 
-//  Give the component a multi-word name (fixes eslint rule)
-defineOptions({ name: "UsersDashboard" });
-
-const props = defineProps({
-  users: { type: Array, required: true }
-});
-
+const props = defineProps({ users: { type: Array, required: true } });
 const emit = defineEmits(["deleteUser"]);
 const q = ref("");
 
