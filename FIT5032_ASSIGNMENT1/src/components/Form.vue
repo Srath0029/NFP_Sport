@@ -98,7 +98,7 @@
             {{ errors.password }}
           </div>
 
-          <!-- Strength meter (simple) -->
+          <!-- Strength meter -->
           <div class="mt-2">
             <div class="progress" style="height: 6px;">
               <div class="progress-bar" role="progressbar" :style="{ width: strength + '%' }"></div>
@@ -210,8 +210,11 @@
         </div>
       </div>
 
-      <!-- Submit stays enabled so you can demonstrate errors -->
-      <button type="submit" class="btn btn-primary">Submit</button>
+      <!-- Submit + Clear -->
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="button" class="btn btn-secondary" @click="clearForm">Clear</button>
+      </div>
     </form>
   </div>
 </template>
@@ -219,7 +222,6 @@
 <script setup>
 import { ref, computed } from "vue";
 
-// If App.vue passes existing usernames, accept them; otherwise default to []
 const props = defineProps({
   existingUsernames: { type: Array, default: () => [] }
 });
@@ -256,20 +258,16 @@ const strength = computed(() => {
   return Math.min(s, 100);
 });
 
-function touch(field) {
-  touched.value[field] = true;
-}
+function touch(field) { touched.value[field] = true; }
 
 function validateField(field) {
   switch (field) {
     case "firstName":
-      errors.value.firstName =
-        !firstName.value || firstName.value.length < 2 ? "First name must be at least 2 characters." : "";
-      break;
+      errors.value.firstName = !firstName.value || firstName.value.length < 2
+        ? "First name must be at least 2 characters." : ""; break;
     case "lastName":
-      errors.value.lastName =
-        !lastName.value || lastName.value.length < 2 ? "Last name must be at least 2 characters." : "";
-      break;
+      errors.value.lastName = !lastName.value || lastName.value.length < 2
+        ? "Last name must be at least 2 characters." : ""; break;
     case "username":
       if (!username.value || username.value.length < 3) {
         errors.value.username = "Username must be at least 3 characters.";
@@ -277,16 +275,11 @@ function validateField(field) {
         errors.value.username = "Use letters, numbers, dot, underscore, or hyphen only.";
       } else if (props.existingUsernames.includes(username.value.toLowerCase())) {
         errors.value.username = "Username is already taken.";
-      } else {
-        errors.value.username = "";
-      }
+      } else { errors.value.username = ""; }
       break;
     case "email":
-      errors.value.email =
-        !email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
-          ? "Enter a valid email address."
-          : "";
-      break;
+      errors.value.email = !email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
+        ? "Enter a valid email address." : ""; break;
     case "password":
       errors.value.password =
         !password.value || password.value.length < 8 || !/\d/.test(password.value) || strength.value < 50
@@ -298,52 +291,27 @@ function validateField(field) {
         password.value !== confirmPassword.value ? "Passwords do not match." : "";
       break;
     case "age":
-      errors.value.age =
-        !age.value || age.value < 13 || age.value > 120 ? "Age must be between 13 and 120." : "";
-      break;
+      errors.value.age = !age.value || age.value < 13 || age.value > 120
+        ? "Age must be between 13 and 120." : ""; break;
     case "location":
-      errors.value.location = !location.value ? "Location is required." : "";
-      break;
+      errors.value.location = !location.value ? "Location is required." : ""; break;
     case "gender":
-      errors.value.gender = !gender.value ? "Please select a gender option." : "";
-      break;
+      errors.value.gender = !gender.value ? "Please select a gender option." : ""; break;
     case "reason":
       errors.value.reason =
-        !reason.value || reason.value.length < 10
-          ? "Please provide at least 10 characters."
-          : reason.value.length > 240
-          ? "Maximum 240 characters."
-          : "";
+        !reason.value || reason.value.length < 10 ? "Please provide at least 10 characters."
+        : reason.value.length > 240 ? "Maximum 240 characters."
+        : "";
       break;
   }
 }
 
 function validateAll() {
-  // mark all as touched and validate each
-  Object.keys(touched.value).forEach((k) => {
-    touched.value[k] = true;
-    validateField(k);
-  });
-  // valid if every error string is empty
+  Object.keys(touched.value).forEach((k) => { touched.value[k] = true; validateField(k); });
   return Object.values(errors.value).every((v) => !v);
 }
 
 const emit = defineEmits(["formSubmitted"]);
-
-function clearForm() {
-  firstName.value = "";
-  lastName.value = "";
-  username.value = "";
-  email.value = "";
-  password.value = "";
-  confirmPassword.value = "";
-  age.value = null;
-  location.value = "";
-  gender.value = "";
-  reason.value = "";
-  Object.keys(errors.value).forEach((k) => (errors.value[k] = ""));
-  Object.keys(touched.value).forEach((k) => (touched.value[k] = false));
-}
 
 function handleSubmit() {
   if (!validateAll()) return;
@@ -353,7 +321,7 @@ function handleSubmit() {
     lastName: lastName.value.trim(),
     username: username.value.trim(),
     email: email.value.trim(),
-    password: password.value,
+    password: password.value, // only for assignment demo; don’t display/store in UI
     age: age.value,
     location: location.value.trim(),
     gender: gender.value,
@@ -361,7 +329,10 @@ function handleSubmit() {
     createdAt: new Date().toISOString()
   });
 
-  // reset
+  clearForm();
+}
+
+function clearForm() {
   firstName.value = lastName.value = username.value = email.value = "";
   password.value = confirmPassword.value = "";
   age.value = null;
