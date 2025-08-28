@@ -211,9 +211,9 @@
       </div>
 
       <!-- Submit stays enabled so you can demonstrate errors -->
-      <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
-  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+  <button type="button" class="btn btn-secondary" @click="clearForm">Clear</button>
+</div>
 </template>
 
 <script setup>
