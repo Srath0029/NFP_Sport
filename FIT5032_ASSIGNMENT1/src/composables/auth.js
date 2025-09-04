@@ -44,3 +44,64 @@ export async function initAuth() {
   }
   currentUser.value = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
 }
+
+export function useAuth() {
+  async function register({ username, email, password, firstName = "", lastName = "", role = "member" }) {
+    const users = loadUsers();
+    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+      throw new Error("Username already exists");
+    }
+    const { hash, salt, iterations } = await hashPassword(password);
+    const user = {
+      id: crypto.randomUUID(),
+      username, email, firstName, lastName,
+      role,
+      pass: { hash, salt, iterations },
+      createdAt: new Date().toISOString()
+    };
+    users.push(user);
+    saveUsers(users);
+
+    // Auto-login after register
+    currentUser.value = { id: user.id, username, email, firstName, lastName, role };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser.value));
+    return currentUser.value;
+  }
+
+  async function login({ username, password }) {
+    const users = loadUsers();
+    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (!user) throw new Error("Invalid credentials");
+    const { hash } = await hashPassword(password, user.pass.salt);
+    if (hash !== user.pass.hash) throw new Error("Invalid credentials");
+
+    currentUser.value = {
+      id: user.id, username: user.username, email: user.email,
+      firstName: user.firstName, lastName: user.lastName, role: user.role
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser.value));
+    return currentUser.value;
+  }
+
+  function logout() {
+    currentUser.value = null;
+    localStorage.removeItem(SESSION_KEY);
+  }
+
+  function getUsers() { return loadUsers(); }
+
+  function setRole(userId, role) {
+    const users = loadUsers();
+    const u = users.find(x => x.id === userId);
+    if (u) {
+      u.role = role;
+      saveUsers(users);
+      if (currentUser.value?.id === userId) {
+        currentUser.value.role = role;
+        localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser.value));
+      }
+    }
+  }
+
+  return { currentUser, register, login, logout, getUsers, setRole };
+}
