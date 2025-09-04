@@ -3,18 +3,22 @@
     <div class="card p-4 shadow-sm">
       <h3 class="mb-3">Login</h3>
 
-      <form @submit.prevent="handleLogin" novalidate>
+      <form @submit.prevent="submit">
         <div class="mb-3">
-          <label for="loginEmail" class="form-label">Email</label>
-          <input id="loginEmail" type="email" v-model.trim="email" class="form-control" required />
+          <label class="form-label">Username</label>
+          <input v-model.trim="username" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input v-model="password" type="password" class="form-control" required />
         </div>
 
-        <div class="mb-3">
-          <label for="loginPassword" class="form-label">Password</label>
-          <input id="loginPassword" type="password" v-model="password" class="form-control" required />
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary" type="submit">Sign In</button>
+          <RouterLink class="btn btn-outline-secondary" to="/register">Create account</RouterLink>
         </div>
 
-        <button type="submit" class="btn btn-primary">Sign In</button>
+        <p class="text-danger mt-3" v-if="error">{{ error }}</p>
       </form>
     </div>
   </div>
@@ -22,12 +26,25 @@
 
 <script setup>
 import { ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useAuth } from "../composables/auth";
 
-const email = ref("");
+const router = useRouter();
+const route = useRoute();
+const { login } = useAuth();
+
+const username = ref("");
 const password = ref("");
+const error = ref("");
 
-const handleLogin = () => {
-  // Placeholder for now (BR C will introduce real auth later)
-  alert("Login submitted (placeholder).");
-};
+async function submit() {
+  error.value = "";
+  try {
+    await login({ username: username.value, password: password.value });
+    const redirect = route.query.redirect || "/";
+    router.push(redirect);
+  } catch (e) {
+    error.value = e.message || "Invalid credentials";
+  }
+}
 </script>
