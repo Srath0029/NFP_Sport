@@ -7,6 +7,6 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 (async () => {
-  await initAuth();            // seed admin, restore session
+  await initAuth();
   createApp(App).use(router).mount("#app");
 })();
