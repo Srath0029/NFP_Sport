@@ -14,7 +14,7 @@ const error = ref("");
 async function submit() {
   error.value = "";
   try {
-    // For Part C simplicity: login by email
+
     await login({ emailOrUsername: email.value, password: password.value });
     const redirect = route.query.redirect || "/profile";
     router.push(redirect);
