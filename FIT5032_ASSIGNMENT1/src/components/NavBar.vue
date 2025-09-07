@@ -12,6 +12,9 @@
           <li class="nav-item"><RouterLink class="nav-link" to="/">Home</RouterLink></li>
           <li class="nav-item"><RouterLink class="nav-link" to="/about">About</RouterLink></li>
           <li class="nav-item"><RouterLink class="nav-link" to="/contact">Contact</RouterLink></li>
+          <li class="nav-item" v-if="user">
+            <RouterLink class="nav-link" to="/profile">Profile</RouterLink>
+          </li>
           <li class="nav-item" v-if="user?.role === 'admin'">
             <RouterLink class="nav-link" to="/admin">Admin</RouterLink>
           </li>
