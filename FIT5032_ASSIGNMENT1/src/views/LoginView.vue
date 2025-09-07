@@ -40,7 +40,7 @@ const error = ref("");
 async function submit() {
   error.value = "";
   try {
-    await login({ username: username.value, password: password.value });
+    await login({ emailOrUsername: email, password });
     const redirect = route.query.redirect || "/";
     router.push(redirect);
   } catch (e) {
@@ -48,5 +48,5 @@ async function submit() {
   }
 }
 
-await login({ emailOrUsername: email, password });
+
 </script>

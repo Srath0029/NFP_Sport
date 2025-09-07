@@ -64,7 +64,7 @@ async function submit() {
     return;
   }
   try {
-    await register({ username: username.value, email: email.value, password: password.value });
+    await login({ emailOrUsername: email, password });
     success.value = "Registered! Redirecting…";
     setTimeout(() => router.push({ name: "Home" }), 700);
   } catch (e) {
