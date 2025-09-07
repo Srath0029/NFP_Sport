@@ -47,4 +47,6 @@ async function submit() {
     error.value = e.message || "Invalid credentials";
   }
 }
+
+await login({ emailOrUsername: email, password });
 </script>
