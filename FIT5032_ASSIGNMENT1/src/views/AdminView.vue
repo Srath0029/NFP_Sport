@@ -26,7 +26,7 @@
         </tbody>
       </table>
     </div>
-    <p class="text-muted">Tip: a default admin is seeded on first run — username <strong>admin</strong>, password <strong>Admin123!</strong></p>
+    <p class="text-muted">Default admin page for demo — username <strong>admin</strong>, password <strong>Admin123!</strong></p>
   </div>
 </template>
 
