@@ -1,47 +1,66 @@
 <template>
   <div class="container mt-4">
-    <h3 class="mb-3">Admin • User Management</h3>
-    <div class="table-responsive">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="mb-0">Admin • User Directory</h3>
+      <div class="d-flex gap-2">
+        <RouterLink class="btn btn-outline-secondary btn-sm" to="/">Home</RouterLink>
+        <RouterLink class="btn btn-outline-secondary btn-sm" to="/profile">Profile</RouterLink>
+      </div>
+    </div>
+
+    <div v-if="loading" class="alert alert-info py-2 mb-3">Loading users…</div>
+    <div v-if="error" class="alert alert-danger py-2 mb-3">
+      {{ error }} — Check Firestore rules or your admin role.
+    </div>
+
+    <div class="table-responsive" v-if="!loading && !error">
       <table class="table table-striped table-hover">
         <thead class="table-dark">
           <tr>
-            <th>Username</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th>
+            <th>Username</th><th>Email</th><th>Role</th><th>Joined</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="u in users" :key="u.id">
-            <td>{{ u.username }}</td>
+            <td>{{ u.username || '(no username)' }}</td>
             <td>{{ u.email }}</td>
-            <td>
-              <select v-model="u.role" class="form-select form-select-sm" style="width: 140px;">
-                <option>member</option>
-                <option>admin</option>
-              </select>
-            </td>
-            <td>{{ new Date(u.createdAt).toLocaleDateString() }}</td>
-            <td>
-              <button class="btn btn-sm btn-primary" @click="apply(u)">Save</button>
-            </td>
+            <td><span class="badge" :class="u.role === 'admin' ? 'bg-primary' : 'bg-secondary'">{{ u.role }}</span></td>
+            <td>{{ formatDate(u.createdAt) }}</td>
           </tr>
         </tbody>
       </table>
+      <div v-if="users.length === 0" class="text-muted">No users found.</div>
     </div>
-    <p class="text-muted">Default admin page for demo — username <strong>admin</strong>, password <strong>Admin123!</strong></p>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useAuth } from "../composables/auth";
+import { db } from "../firebase";
+import { collection, getDocs } from "firebase/firestore";
 
-const { getUsers, setRole } = useAuth();
 const users = ref([]);
+const loading = ref(true);
+const error = ref("");
 
-onMounted(() => {
-  users.value = getUsers().map(u => ({ ...u })); // shallow copy for local edits
-});
-
-function apply(u) {
-  setRole(u.id, u.role);
+function formatDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString();
 }
+
+onMounted(async () => {
+  try {
+    const snap = await getDocs(collection(db, "users"));
+    users.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    error.value = e.message || "Failed to load users.";
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
+
+<style scoped>
+/* Ensure nothing overlays the navbar: keep default static positioning */
+</style>

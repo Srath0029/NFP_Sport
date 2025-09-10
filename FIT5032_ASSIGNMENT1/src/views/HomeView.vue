@@ -13,7 +13,8 @@
         </div>
       </div>
       <div class="col-lg-6">
-        <RatingWidget itemKey="overall_website_experience" title="Rate your experience with the website" />
+        <!-- HomeView.vue -->
+      <ReviewWidget itemKey="overall_website_experience" title="Rate & review the website" />
       </div>
     </div>
   </div>
@@ -21,4 +22,5 @@
 
 <script setup>
 import RatingWidget from "../components/RatingWidget.vue";
+import ReviewWidgit from "@/components/ReviewWidgit.vue";
 </script>
