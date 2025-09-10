@@ -12,15 +12,18 @@
           <RouterLink class="btn btn-outline-secondary btn-lg" to="/login">Log In</RouterLink>
         </div>
       </div>
+
       <div class="col-lg-6">
-        <!-- HomeView.vue -->
-      <ReviewWidget itemKey="overall_website_experience" title="Rate & review the website" />
+        <!-- Ratings + reviews -->
+        <ReviewWidget itemKey="overall_website_experience" title="Rate & review the website" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import RatingWidget from "../components/RatingWidget.vue";
-import ReviewWidgit from "@/components/ReviewWidgit.vue";
+
+
+
+import ReviewWidget from "../components/ReviewWidget.vue";
 </script>
