@@ -15,8 +15,25 @@
           <li class="nav-item" v-if="user">
             <RouterLink class="nav-link" to="/profile">Profile</RouterLink>
           </li>
-          <li class="nav-item" v-if="user?.role === 'admin'">
-            <RouterLink class="nav-link" to="/admin">Admin</RouterLink>
+
+          <!-- ✅ Admin Dropdown -->
+          <li class="nav-item dropdown" v-if="user?.role === 'admin'">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              id="adminDropdown"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Admin
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+              <li><RouterLink class="dropdown-item" to="/admin">Dashboard</RouterLink></li>
+              <li><RouterLink class="dropdown-item" to="/admin/tables">Programs Table</RouterLink></li>
+              <li><RouterLink class="dropdown-item" to="/admin/users">Users Table</RouterLink></li>
+              <li><RouterLink class="dropdown-item" to="/admin/email">Email Panel</RouterLink></li>
+            </ul>
           </li>
         </ul>
 
