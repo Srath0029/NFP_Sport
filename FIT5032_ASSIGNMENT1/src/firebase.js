@@ -8,7 +8,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBIq1EBpyqCul8QrK_SibBzj-_8EI8Mw2M",
   authDomain: "fit5032-assignment1.firebaseapp.com",
   projectId: "fit5032-assignment1",
-  storageBucket: "fit5032-assignment1.appspot.com", // ✅ fixed
+  storageBucket: "fit5032-assignment1.appspot.com",
   messagingSenderId: "253718872532",
   appId: "1:253718872532:web:312971ff1c44bc8fff1641",
   measurementId: "G-Q9WKQW2KEM",
