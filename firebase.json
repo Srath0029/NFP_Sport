@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "functions": [
     {
       "source": "functions",
@@ -15,4 +16,12 @@
       ]
     }
   ]
+=======
+  "firestore": {
+    "database": "(default)",
+    "location": "australia-southeast2",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+>>>>>>> 6470f63cb3e1d61871c910e925e7d11420d7ffc7
 }
