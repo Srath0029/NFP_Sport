@@ -12,6 +12,8 @@ import ProfileView from "../views/ProfileView.vue";
 // 🔹 NEW (D.2 and D.3 pages)
 import AdminEmailView from "../views/AdminEmailView.vue";     // create this view
 import AdminTablesView from "../views/AdminTablesView.vue";   // create this view
+import AdminUsersView from "../views/AdminUsersView.vue";
+
 
 import { useAuth } from "../composables/auth";
 
@@ -30,6 +32,7 @@ const routes = [
   // 🔹 NEW routes for rubric items
   { path: "/admin/email", name: "AdminEmail", component: AdminEmailView, meta: { requiresAuth: true, roles: ["admin"] } },    // D.2
   { path: "/admin/tables", name: "AdminTables", component: AdminTablesView, meta: { requiresAuth: true, roles: ["admin"] } }, // D.3
+  { path: "/admin/users", name: "AdminUsers", component: AdminUsersView, meta: { requiresAuth: true, roles: ["admin"] } },
 ];
 
 const router = createRouter({
