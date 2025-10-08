@@ -1,39 +1,6 @@
-<template>
-  <div class="container mt-4">
-    <h1>Admin Email Panel</h1>
-    <p class="lead">Use this page to send emails with attachments via SendGrid.</p>
-
-    <!-- Example Email Form -->
-    <form @submit.prevent="sendEmail" class="mt-4">
-      <div class="mb-3">
-        <label class="form-label">Recipient Email</label>
-        <input v-model="to" type="email" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Subject</label>
-        <input v-model="subject" type="text" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Message</label>
-        <textarea v-model="body" class="form-control" rows="4" required></textarea>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Attachment URL (optional)</label>
-        <input v-model="attachment" type="url" class="form-control" />
-      </div>
-
-      <button class="btn btn-primary" type="submit" :disabled="loading">
-        {{ loading ? 'Sending...' : 'Send Email' }}
-      </button>
-
-      <div v-if="status" class="alert alert-info mt-3">{{ status }}</div>
-    </form>
-  </div>
-</template>
-
 <script setup>
 import { ref } from "vue";
-import { sendEmail } from "../services/emailService"; // you’ll create this next
+import { sendEmail as sendEmailApi } from "../services/emailService"; // ✅ rename import
 
 const to = ref("");
 const subject = ref("");
@@ -42,14 +9,15 @@ const attachment = ref("");
 const loading = ref(false);
 const status = ref("");
 
-const sendEmail = async () => {
+const sendEmail = async () => {            // ✅ local submit handler
   loading.value = true;
+  status.value = "";
   try {
-    await sendEmail({
+    await sendEmailApi({                   // ✅ call the renamed import
       to: to.value,
       subject: subject.value,
       body: body.value,
-      attachment: attachment.value,
+      attachment: attachment.value || null,
     });
     status.value = "✅ Email sent successfully!";
   } catch (err) {
