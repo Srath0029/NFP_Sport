@@ -1,6 +1,6 @@
 // src/services/emailService.js
 export async function sendEmailViaHttp({ to, subject, html, file, cc, bcc }) {
-  let attachment = null;
+  let attachment;
   if (file instanceof File) {
     const base64 = await fileToBase64NoPrefix(file);
     attachment = {
@@ -9,24 +9,28 @@ export async function sendEmailViaHttp({ to, subject, html, file, cc, bcc }) {
       mimeType: file.type || "application/octet-stream",
     };
   }
+
   const res = await fetch("/api/send-email", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ to, subject, html, attachment, cc, bcc }),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
 
-export function textToHtml(text) {
-  return String(text || "").replace(/\n/g, "<br>");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.detail || err?.error || `HTTP ${res.status}`);
+  }
+  return res.json();
 }
 
 function fileToBase64NoPrefix(file) {
   return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onerror = reject;
-    r.onload = () => resolve(String(r.result).split(",")[1] || "");
-    r.readAsDataURL(file);
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const s = String(reader.result); // "data:<mime>;base64,AAAA..."
+      resolve(s.split(",")[1] || "");  // strip prefix
+    };
+    reader.readAsDataURL(file);
   });
 }
