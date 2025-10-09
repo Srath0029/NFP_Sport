@@ -1,15 +1,8 @@
 // Cloudflare Pages Function: POST /api/send-email
-// Uses SendGrid API with a secret env var. Works on free tier.
-// Attachments accepted as base64 (no "data:*;base64," prefix).
+// Uses SendGrid REST API with a secret env var. Free on Cloudflare.
 
 export async function onRequestPost({ request, env }) {
   try {
-    // Optional: simple auth via shared secret header
-    const secret = request.headers.get("x-api-key");
-    if (env.API_SHARED_SECRET && secret !== env.API_SHARED_SECRET) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-    }
-
     const body = await request.json();
     const { to, subject, html, attachment, cc, bcc } = body || {};
 
@@ -17,20 +10,22 @@ export async function onRequestPost({ request, env }) {
       return new Response(JSON.stringify({ error: "Missing to/subject/html" }), { status: 400 });
     }
 
+    // Build SendGrid payload
     const msg = {
       personalizations: [{
-        to: Array.isArray(to) ? to.map(e => ({ email: e })) : [{ email: to }],
+        to: (Array.isArray(to) ? to : [to]).map(e => ({ email: e })),
         ...(Array.isArray(cc) && cc.length ? { cc: cc.map(e => ({ email: e })) } : {}),
         ...(Array.isArray(bcc) && bcc.length ? { bcc: bcc.map(e => ({ email: e })) } : {}),
       }],
-      from: { email: "noreply@nfp-sport.org", name: "NFP Sport" }, // must be verified in SendGrid
+      from: { email: "noreply@nfp-sport.org", name: "NFP Sport" }, // <- must be a verified sender in SendGrid
       subject,
       content: [{ type: "text/html", value: html }],
     };
 
+    // Optional attachment: { contentBase64, filename, mimeType }
     if (attachment && attachment.contentBase64 && attachment.filename) {
       msg.attachments = [{
-        content: attachment.contentBase64,       // base64 only
+        content: attachment.contentBase64,              // base64 only (no "data:*;base64," prefix)
         filename: attachment.filename,
         type: attachment.mimeType || "application/octet-stream",
         disposition: "attachment",
