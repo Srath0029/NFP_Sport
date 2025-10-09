@@ -1,8 +1,6 @@
 // src/services/emailService.js
-
 export async function sendEmailViaHttp({ to, subject, html, file, cc, bcc }) {
   let attachment = null;
-
   if (file instanceof File) {
     const base64 = await fileToBase64NoPrefix(file);
     attachment = {
@@ -11,17 +9,12 @@ export async function sendEmailViaHttp({ to, subject, html, file, cc, bcc }) {
       mimeType: file.type || "application/octet-stream",
     };
   }
-
   const res = await fetch("/api/send-email", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ to, subject, html, attachment, cc, bcc }),
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to send email");
-  }
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
@@ -33,10 +26,7 @@ function fileToBase64NoPrefix(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onerror = reject;
-    r.onload = () => {
-      const str = String(r.result || "");
-      resolve(str.split(",")[1] || "");
-    };
+    r.onload = () => resolve(String(r.result).split(",")[1] || "");
     r.readAsDataURL(file);
   });
 }
