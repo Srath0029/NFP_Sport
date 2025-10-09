@@ -6,6 +6,10 @@ yarn-debug.log*
 yarn-error.log*
 firebase-debug.log*
 firebase-debug.*.log*
+# Dependency directories
+node_modules/
+functions/node_modules/
+
 
 # Firebase cache
 .firebase/

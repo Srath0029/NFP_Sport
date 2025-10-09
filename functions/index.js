@@ -6,7 +6,6 @@ const sgMail = require("@sendgrid/mail");
 try {
   admin.initializeApp();
 } catch (e) {
-  // already initialized in emulator/hot-reload, it's safe to ignore
   console.log("Admin already initialized");
 }
 
@@ -24,7 +23,7 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
 
   const msg = {
     to,
-    from: { email: "noreply@nfp-sport.org", name: "NFP Sport" }, // use verified sender
+    from: { email: "noreply@nfp-sport.org", name: "NFP Sport" }, // verified sender
     subject,
     html,
   };
