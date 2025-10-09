@@ -38,7 +38,7 @@
 <script setup>
 import { ref } from "vue";
 import { sendEmailViaHttp, textToHtml } from "../services/emailService";
-import { sendEmailViaHttp } from "@/services/emailService";
+import { sendEmailViaHttp, textToHtml } from "@/services/emailService";
 
 
 const to = ref("");
