@@ -1,7 +1,7 @@
-// src/services/emailService.js
+const API_BASE = import.meta.env.DEV ? "http://127.0.0.1:8788" : "";
+
 export async function sendEmailViaHttp({ to, subject, html, file }) {
   let attachment;
-
   if (file instanceof File) {
     const base64 = await new Promise((resolve, reject) => {
       const r = new FileReader();
@@ -16,7 +16,7 @@ export async function sendEmailViaHttp({ to, subject, html, file }) {
     };
   }
 
-  const res = await fetch("/api/send-email", {
+  const res = await fetch(`${API_BASE}/api/send-email`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ to, subject, html, attachment }),

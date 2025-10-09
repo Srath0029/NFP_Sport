@@ -1,12 +1,12 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/pages-Opy6vI/functionsWorker-0.86264147496641.mjs
+// .wrangler/tmp/pages-3bMTWC/functionsWorker-0.978153630248759.mjs
 var __defProp2 = Object.defineProperty;
 var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
 var CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  // tighten to your domain if you want
+  // tighten to your domain for prod
   "Access-Control-Allow-Methods": "POST,OPTIONS,GET",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Content-Type": "application/json"
@@ -29,6 +29,14 @@ async function onRequestPost({ request, env }) {
     if (!env.SENDGRID_API_KEY) {
       return json({ error: "Missing SENDGRID_API_KEY" }, 500);
     }
+    const fromEmail = env.SENDGRID_FROM;
+    const fromName = env.SENDGRID_FROM_NAME || "NFP Sport";
+    if (!fromEmail) {
+      return json(
+        { error: "Missing SENDGRID_FROM (must be a verified Sender Identity in SendGrid)" },
+        500
+      );
+    }
     const body = await safeJson(request);
     if (!body) return json({ error: "Invalid JSON body" }, 400);
     const { to, subject, html } = body;
@@ -47,18 +55,19 @@ async function onRequestPost({ request, env }) {
           subject
         }
       ],
-      // This must be a verified Single Sender or a verified domain in your SendGrid account
-      from: { email: "noreply@nfp-sport.org", name: "NFP Sport" },
-      // You can add a text fallback if you want:
-      // content: [{ type: "text/plain", value: stripHtml(html) }, { type: "text/html", value: html }],
+      from: { email: fromEmail, name: fromName },
       content: [{ type: "text/html", value: html }]
     };
+    if (body.replyTo) {
+      const rt = String(body.replyTo).trim();
+      if (rt) msg.reply_to = { email: rt };
+    }
     const att = body.attachment;
     if (att && att.contentBase64 && att.filename) {
       msg.attachments = [
         {
           content: att.contentBase64,
-          // base64 string ONLY (no "data:*;base64," prefix)
+          // base64 only (no data: prefix)
           filename: att.filename,
           type: att.mimeType || "application/octet-stream",
           disposition: "attachment"
@@ -793,7 +802,7 @@ var jsonError2 = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default2 = jsonError2;
 
-// .wrangler/tmp/bundle-2dInWl/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-GQxuJx/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__2 = [
   middleware_ensure_req_body_drained_default2,
   middleware_miniflare3_json_error_default2
@@ -825,7 +834,7 @@ function __facade_invoke__2(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__2, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-2dInWl/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-GQxuJx/middleware-loader.entry.ts
 var __Facade_ScheduledController__2 = class ___Facade_ScheduledController__2 {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -925,4 +934,4 @@ export {
   __INTERNAL_WRANGLER_MIDDLEWARE__2 as __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default2 as default
 };
-//# sourceMappingURL=functionsWorker-0.86264147496641.js.map
+//# sourceMappingURL=functionsWorker-0.978153630248759.js.map

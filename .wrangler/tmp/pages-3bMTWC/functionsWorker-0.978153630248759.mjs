@@ -4,7 +4,7 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 // api/send-email.js
 var CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  // tighten to your domain if you want
+  // tighten to your domain for prod
   "Access-Control-Allow-Methods": "POST,OPTIONS,GET",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Content-Type": "application/json"
@@ -25,6 +25,14 @@ async function onRequestPost({ request, env }) {
     if (!env.SENDGRID_API_KEY) {
       return json({ error: "Missing SENDGRID_API_KEY" }, 500);
     }
+    const fromEmail = env.SENDGRID_FROM;
+    const fromName = env.SENDGRID_FROM_NAME || "NFP Sport";
+    if (!fromEmail) {
+      return json(
+        { error: "Missing SENDGRID_FROM (must be a verified Sender Identity in SendGrid)" },
+        500
+      );
+    }
     const body = await safeJson(request);
     if (!body) return json({ error: "Invalid JSON body" }, 400);
     const { to, subject, html } = body;
@@ -43,18 +51,19 @@ async function onRequestPost({ request, env }) {
           subject
         }
       ],
-      // This must be a verified Single Sender or a verified domain in your SendGrid account
-      from: { email: "noreply@nfp-sport.org", name: "NFP Sport" },
-      // You can add a text fallback if you want:
-      // content: [{ type: "text/plain", value: stripHtml(html) }, { type: "text/html", value: html }],
+      from: { email: fromEmail, name: fromName },
       content: [{ type: "text/html", value: html }]
     };
+    if (body.replyTo) {
+      const rt = String(body.replyTo).trim();
+      if (rt) msg.reply_to = { email: rt };
+    }
     const att = body.attachment;
     if (att && att.contentBase64 && att.filename) {
       msg.attachments = [
         {
           content: att.contentBase64,
-          // base64 string ONLY (no "data:*;base64," prefix)
+          // base64 only (no data: prefix)
           filename: att.filename,
           type: att.mimeType || "application/octet-stream",
           disposition: "attachment"
@@ -98,7 +107,7 @@ function normalizeEmails(v) {
 }
 __name(normalizeEmails, "normalizeEmails");
 
-// ../.wrangler/tmp/pages-Opy6vI/functionsRoutes-0.31443989867883704.mjs
+// ../.wrangler/tmp/pages-3bMTWC/functionsRoutes-0.11761207459858314.mjs
 var routes = [
   {
     routePath: "/api/send-email",
@@ -610,7 +619,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-8fRPea/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-npC7wC/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -642,7 +651,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-8fRPea/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-npC7wC/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -742,4 +751,4 @@ export {
   __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default as default
 };
-//# sourceMappingURL=functionsWorker-0.86264147496641.mjs.map
+//# sourceMappingURL=functionsWorker-0.978153630248759.mjs.map

@@ -1,17 +1,15 @@
 // functions/api/send-email.js
-// Cloudflare Pages Function: POST /api/send-email
-// Uses SendGrid REST API via SENDGRID_API_KEY in env (.dev.vars for local dev)
+// Cloudflare Pages Function: /api/send-email
+// Uses SendGrid REST API with env vars (set .dev.vars locally; set Env Vars in Cloudflare Pages)
 
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",                 // tighten to your domain if you want
+  "Access-Control-Allow-Origin": "*", // tighten to your domain for prod
   "Access-Control-Allow-Methods": "POST,OPTIONS,GET",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Content-Type": "application/json",
 };
 
-// ────────────────────────────────────────────────────────────────────────────────
-// GET: health check. Useful to confirm route is alive.
-// ────────────────────────────────────────────────────────────────────────────────
+// GET: health check
 export async function onRequestGet() {
   return new Response(JSON.stringify({ ok: true, route: "/api/send-email" }), {
     status: 200,
@@ -19,24 +17,29 @@ export async function onRequestGet() {
   });
 }
 
-// ────────────────────────────────────────────────────────────────────────────────
 // OPTIONS: CORS preflight
-// ────────────────────────────────────────────────────────────────────────────────
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
-// ────────────────────────────────────────────────────────────────────────────────
 // POST: send email via SendGrid
-// body = { to, subject, html, attachment?, cc?, bcc? }
-// ────────────────────────────────────────────────────────────────────────────────
+// body = { to, subject, html, attachment?, cc?, bcc?, replyTo? }
 export async function onRequestPost({ request, env }) {
   try {
     if (!env.SENDGRID_API_KEY) {
       return json({ error: "Missing SENDGRID_API_KEY" }, 500);
     }
 
-    // Ensure JSON
+    // ✅ These MUST be set; the email must be a verified Single Sender or domain in SendGrid
+    const fromEmail = env.SENDGRID_FROM;
+    const fromName = env.SENDGRID_FROM_NAME || "NFP Sport";
+    if (!fromEmail) {
+      return json(
+        { error: "Missing SENDGRID_FROM (must be a verified Sender Identity in SendGrid)" },
+        500
+      );
+    }
+
     const body = await safeJson(request);
     if (!body) return json({ error: "Invalid JSON body" }, 400);
 
@@ -60,20 +63,22 @@ export async function onRequestPost({ request, env }) {
           subject,
         },
       ],
-      // This must be a verified Single Sender or a verified domain in your SendGrid account
-      from: { email: "noreply@nfp-sport.org", name: "NFP Sport" },
-
-      // You can add a text fallback if you want:
-      // content: [{ type: "text/plain", value: stripHtml(html) }, { type: "text/html", value: html }],
+      from: { email: fromEmail, name: fromName },
       content: [{ type: "text/html", value: html }],
     };
+
+    // Optional reply-to (does not need to be verified)
+    if (body.replyTo) {
+      const rt = String(body.replyTo).trim();
+      if (rt) msg.reply_to = { email: rt };
+    }
 
     // Optional attachment: { contentBase64, filename, mimeType }
     const att = body.attachment;
     if (att && att.contentBase64 && att.filename) {
       msg.attachments = [
         {
-          content: att.contentBase64, // base64 string ONLY (no "data:*;base64," prefix)
+          content: att.contentBase64, // base64 only (no data: prefix)
           filename: att.filename,
           type: att.mimeType || "application/octet-stream",
           disposition: "attachment",
@@ -92,6 +97,7 @@ export async function onRequestPost({ request, env }) {
 
     if (!res.ok) {
       const text = await res.text();
+      // bubble up sendgrid’s message to make debugging easy
       return json({ error: "SendGrid error", detail: text }, 502);
     }
 
@@ -101,9 +107,7 @@ export async function onRequestPost({ request, env }) {
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────────
 // Helpers
-// ────────────────────────────────────────────────────────────────────────────────
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: CORS_HEADERS });
 }
@@ -121,8 +125,3 @@ function normalizeEmails(v) {
   if (Array.isArray(v)) return v.filter(Boolean).map(String);
   return String(v).split(",").map((s) => s.trim()).filter(Boolean);
 }
-
-// Optional: super basic HTML stripper if you want a text part
-// function stripHtml(html) {
-//   return String(html).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-// }

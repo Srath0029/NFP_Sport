@@ -44,13 +44,13 @@ const file = ref(null);
 const status = ref("");
 const loading = ref(false);
 
-// ✅ define helper in this same script block
+// keep this helper in THIS block so it's defined when onSend runs
 function textToHtml(txt) {
   const s = String(txt ?? "");
   const escaped = s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;"); // <-- fixed (no stray slash)
+    .replace(/>/g, "&gt;");
   return escaped.replace(/\r?\n/g, "<br>");
 }
 
