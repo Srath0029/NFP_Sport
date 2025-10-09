@@ -1,8 +1,14 @@
 // src/services/emailService.js
-export async function sendEmailViaHttp({ to, subject, html, file, cc, bcc }) {
+export async function sendEmailViaHttp({ to, subject, html, file }) {
   let attachment;
+
   if (file instanceof File) {
-    const base64 = await fileToBase64NoPrefix(file);
+    const base64 = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onerror = reject;
+      r.onload = () => resolve(String(r.result).split(",")[1] ?? "");
+      r.readAsDataURL(file);
+    });
     attachment = {
       contentBase64: base64,
       filename: file.name,
@@ -13,24 +19,12 @@ export async function sendEmailViaHttp({ to, subject, html, file, cc, bcc }) {
   const res = await fetch("/api/send-email", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to, subject, html, attachment, cc, bcc }),
+    body: JSON.stringify({ to, subject, html, attachment }),
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.detail || err?.error || `HTTP ${res.status}`);
+    const detail = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${detail}`);
   }
   return res.json();
-}
-
-function fileToBase64NoPrefix(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const s = String(reader.result); // "data:<mime>;base64,AAAA..."
-      resolve(s.split(",")[1] || "");  // strip prefix
-    };
-    reader.readAsDataURL(file);
-  });
 }
