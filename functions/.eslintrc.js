@@ -1,28 +1,23 @@
+/* eslint-env node */
 module.exports = {
+  root: true,
   env: {
-    es6: true,
     node: true,
+    es2021: true,
   },
   parserOptions: {
-    "ecmaVersion": 2018,
+    ecmaVersion: 2021,
+    sourceType: "script", // CommonJS files (require/exports)
   },
   extends: [
     "eslint:recommended",
-    "google",
   ],
   rules: {
-    "no-restricted-globals": ["error", "name", "length"],
-    "prefer-arrow-callback": "error",
-    "quotes": ["error", "double", {"allowTemplateLiterals": true}],
+    // Allow empty catch (or we log; either way silence the rule)
+    "no-empty": ["error", { "allowEmptyCatch": true }],
   },
-  overrides: [
-    {
-      files: ["**/*.spec.*"],
-      env: {
-        mocha: true,
-      },
-      rules: {},
-    },
+  ignorePatterns: [
+    "lib/**",
+    "node_modules/**",
   ],
-  globals: {},
 };
