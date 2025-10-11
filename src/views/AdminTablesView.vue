@@ -1,101 +1,157 @@
 <template>
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h3 class="mb-0">Admin • Interactive Tables (D.3)</h3>
+      <h3 class="mb-0">Admin • Programs</h3>
       <div class="d-flex gap-2">
-        <RouterLink class="btn btn-outline-secondary btn-sm" to="/">Home</RouterLink>
-        <RouterLink class="btn btn-outline-secondary btn-sm" to="/admin">Admin</RouterLink>
+        <button class="btn btn-primary btn-sm" @click="openCreate">+ New Program</button>
+        <RouterLink class="btn btn-outline-secondary btn-sm" to="/admin">Dashboard</RouterLink>
       </div>
     </div>
 
-    <!-- PROGRAMS TABLE -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <strong>Programs</strong>
-        <small class="text-muted"> – sort, search (per column), 10 rows per page</small>
+    <div class="row g-2 mb-3">
+      <div class="col-12 col-md-4">
+        <input v-model="q" class="form-control" placeholder="Search (title, type, suburb, days)">
       </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table id="programsTable" class="table table-striped table-hover" style="width:100%">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Type</th>
-                <th>Suburb</th>
-                <th>Days</th>
-                <th>Capacity</th>
-                <th>Active</th>
-              </tr>
-              <!-- per-column filters -->
-              <tr class="filters">
-                <th><input class="form-control form-control-sm" placeholder="Search title" /></th>
-                <th><input class="form-control form-control-sm" placeholder="Search type" /></th>
-                <th><input class="form-control form-control-sm" placeholder="Search suburb" /></th>
-                <th><input class="form-control form-control-sm" placeholder="Tue, Thu…" /></th>
-                <th><input class="form-control form-control-sm" placeholder="e.g. 20" /></th>
-                <th>
-                  <select class="form-select form-select-sm">
-                    <option value="">All</option>
-                    <option>true</option>
-                    <option>false</option>
-                  </select>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="p in programs" :key="p.id">
-                <td>{{ p.title }}</td>
-                <td>{{ p.type }}</td>
-                <td>{{ p.suburb }}</td>
-                <td>{{ (p.days || []).join(', ') }}</td>
-                <td>{{ p.capacity ?? '—' }}</td>
-                <td>{{ p.active ? 'true' : 'false' }}</td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="col-6 col-md-2">
+        <select v-model="pageSize" class="form-select">
+          <option :value="10">10 / page</option>
+          <option :value="25">25 / page</option>
+          <option :value="50">50 / page</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select v-model="onlyActive" class="form-select">
+          <option :value="false">All</option>
+          <option :value="true">Active only</option>
+        </select>
+      </div>
+    </div>
+
+    <div v-if="loading" class="alert alert-info py-2">Loading programs…</div>
+    <div v-if="error" class="alert alert-danger py-2">{{ error }}</div>
+
+    <div class="table-responsive" v-if="!loading">
+      <table class="table table-striped table-hover align-middle">
+        <thead>
+          <tr>
+            <th @click="sortBy('title')" role="button">Title <SortIcon :col="'title'" :sort="sort"/></th>
+            <th @click="sortBy('type')" role="button">Type <SortIcon :col="'type'" :sort="sort"/></th>
+            <th>Days</th>
+            <th @click="sortBy('suburb')" role="button">Suburb <SortIcon :col="'suburb'" :sort="sort"/></th>
+            <th class="text-end">Cap.</th>
+            <th>Active</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in paged" :key="p.id">
+            <td>{{ p.title }}</td>
+            <td class="text-capitalize">{{ p.type }}</td>
+            <td>
+              <span v-for="d in p.days" :key="d" class="badge bg-light text-dark me-1">{{ d }}</span>
+            </td>
+            <td>{{ p.suburb }}</td>
+            <td class="text-end">{{ p.capacity ?? '—' }}</td>
+            <td>
+              <span class="badge" :class="p.active ? 'bg-success' : 'bg-secondary'">
+                {{ p.active ? 'Yes' : 'No' }}
+              </span>
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-primary me-1" @click="openEdit(p)">Edit</button>
+              <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(p)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="text-muted">Showing {{ startIdx + 1 }}–{{ endIdx }} of {{ filtered.length }}</div>
+        <div class="btn-group">
+          <button class="btn btn-outline-secondary btn-sm" :disabled="page===1" @click="page--">Prev</button>
+          <span class="btn btn-outline-secondary btn-sm disabled">Page {{ page }} / {{ totalPages }}</span>
+          <button class="btn btn-outline-secondary btn-sm" :disabled="page===totalPages" @click="page++">Next</button>
         </div>
       </div>
     </div>
 
-    <!-- USERS TABLE -->
-    <div class="card">
-      <div class="card-header">
-        <strong>Users</strong>
-        <small class="text-muted"> – sort, search (per column), 10 rows per page</small>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table id="usersTable" class="table table-striped table-hover" style="width:100%">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Joined</th>
-              </tr>
-              <!-- per-column filters -->
-              <tr class="filters">
-                <th><input class="form-control form-control-sm" placeholder="Search username" /></th>
-                <th><input class="form-control form-control-sm" placeholder="Search email" /></th>
-                <th>
-                  <select class="form-select form-select-sm">
-                    <option value="">All</option>
-                    <option>admin</option>
-                    <option>member</option>
+    <!-- Modal -->
+    <div class="modal fade" ref="modalRef" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <form @submit.prevent="save">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ editing?.id ? 'Edit Program' : 'New Program' }}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Title</label>
+                  <input v-model.trim="form.title" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Type</label>
+                  <input v-model.trim="form.type" class="form-control" placeholder="soccer / yoga / basketball …" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label">Days (comma separated)</label>
+                  <input v-model="daysInput" class="form-control" placeholder="Mon, Wed, Fri">
+                </div>
+                <div class="col-md-8">
+                  <label class="form-label">Address</label>
+                  <input v-model.trim="form.address" class="form-control">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Suburb</label>
+                  <input v-model.trim="form.suburb" class="form-control">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Latitude</label>
+                  <input v-model.number="form.lat" type="number" step="any" class="form-control">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Longitude</label>
+                  <input v-model.number="form.lng" type="number" step="any" class="form-control">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Capacity</label>
+                  <input v-model.number="form.capacity" type="number" min="0" class="form-control">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Active</label>
+                  <select v-model="form.active" class="form-select">
+                    <option :value="true">Yes</option>
+                    <option :value="false">No</option>
                   </select>
-                </th>
-                <th><input class="form-control form-control-sm" placeholder="YYYY-MM-DD" /></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="u in users" :key="u.id">
-                <td>{{ u.username || '(no username)' }}</td>
-                <td>{{ u.email }}</td>
-                <td>{{ u.role || 'member' }}</td>
-                <td>{{ formatDate(u.createdAt) }}</td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
+              <div v-if="saveError" class="alert alert-danger mt-3">{{ saveError }}</div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-primary" type="submit" :disabled="saving">
+                {{ saving ? 'Saving…' : 'Save' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete confirm -->
+    <div class="modal fade" ref="deleteRef" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title">Delete Program</h5></div>
+          <div class="modal-body">
+            Are you sure you want to delete <strong>{{ toDelete?.title }}</strong>?
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-danger" @click="doDelete" :disabled="deleting">Delete</button>
+          </div>
         </div>
       </div>
     </div>
@@ -104,89 +160,162 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from "vue";
-import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { ref, reactive, computed, onMounted } from "vue";
+import { listPrograms, createProgram, updateProgram, deleteProgramById } from "../services/programsService";
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
-const programs = ref([]);
-const users = ref([]);
+// small sort icon component
+const SortIcon = {
+  props: { col: String, sort: Object },
+  template: `
+    <span class="ms-1" v-if="sort.col===col">
+      <i :class="sort.dir==='asc' ? 'bi bi-caret-up-fill' : 'bi bi-caret-down-fill'"></i>
+    </span>
+  `
+};
 
-function formatDate(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+const rows = ref([]);
+const loading = ref(true);
+const error = ref("");
+
+const q = ref("");
+const onlyActive = ref(false);
+const page = ref(1);
+const pageSize = ref(10);
+const sort = reactive({ col: 'title', dir: 'asc' });
+
+function normalize(s) { return String(s || '').toLowerCase(); }
+
+const filtered = computed(() => {
+  const term = normalize(q.value);
+  const base = rows.value.filter(r => {
+    if (onlyActive.value && !r.active) return false;
+    if (!term) return true;
+    const hay =
+      `${r.title} ${r.type} ${r.suburb} ${(r.days||[]).join(' ')}`.toLowerCase();
+    return hay.includes(term);
+  });
+  const sorted = [...base].sort((a,b) => {
+    const av = (a[sort.col] ?? '').toString().toLowerCase();
+    const bv = (b[sort.col] ?? '').toString().toLowerCase();
+    if (av < bv) return sort.dir === 'asc' ? -1 : 1;
+    if (av > bv) return sort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return sorted;
+});
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)));
+const startIdx = computed(() => (page.value - 1) * pageSize.value);
+const endIdx = computed(() => Math.min(filtered.value.length, startIdx.value + pageSize.value));
+const paged = computed(() => filtered.value.slice(startIdx.value, endIdx.value));
+
+function sortBy(col) {
+  if (sort.col === col) sort.dir = (sort.dir === 'asc' ? 'desc' : 'asc');
+  else { sort.col = col; sort.dir = 'asc'; }
 }
 
-let programsDT = null;
-let usersDT = null;
-
 onMounted(async () => {
-  // 1) Load data from Firestore
-  const pSnap = await getDocs(collection(db, "programs"));
-  programs.value = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  try {
+    rows.value = await listPrograms();
+  } catch (e) {
+    error.value = e.message || "Failed to load programs.";
+  } finally {
+    loading.value = false;
+  }
+});
 
-  const uSnap = await getDocs(collection(db, "users"));
-  users.value = uSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+// Modal state
+const modalRef = ref(null);
+const deleteRef = ref(null);
+let modal, deleteModal;
 
-  // 2) Wait for DOM to render rows, then initialize DataTables
-  queueMicrotask(() => {
-    // Programs
-    programsDT = window.$("#programsTable").DataTable({
-      pageLength: 10,
-      lengthChange: false,
-      ordering: true,
-      responsive: true,
-    });
-    // Per-column search (programs)
-    programsDT.columns().every(function () {
-      const that = this;
-      const input = this.header().parentNode.querySelectorAll(".filters th")[this.index()]?.querySelector("input,select");
-      if (input) {
-        input.addEventListener("keyup", () => that.search(input.value).draw());
-        input.addEventListener("change", () => that.search(input.value).draw());
-      }
-    });
+onMounted(() => {
+  // Bootstrap modals
+  modal = new window.bootstrap.Modal(modalRef.value);
+  deleteModal = new window.bootstrap.Modal(deleteRef.value);
+});
 
-    // Users
-    usersDT = window.$("#usersTable").DataTable({
-      pageLength: 10,
-      lengthChange: false,
-      ordering: true,
-      responsive: true,
-    });
-    // Per-column search (users)
-    usersDT.columns().every(function () {
-      const that = this;
-      const input = this.header().parentNode.querySelectorAll(".filters th")[this.index()]?.querySelector("input,select");
-      if (input) {
-        input.addEventListener("keyup", () => that.search(input.value).draw());
-        input.addEventListener("change", () => that.search(input.value).draw());
-      }
-    });
+// form state
+const editing = ref(null);      // whole program being edited (or null for create)
+const form = reactive({
+  title: "", type: "", days: [], address: "", suburb: "",
+  lat: null, lng: null, capacity: null, active: true,
+});
+const saveError = ref("");
+const saving = ref(false);
+const toDelete = ref(null);
+const deleting = ref(false);
+
+// days input helpers
+const daysInput = computed({
+  get() { return (form.days || []).join(", "); },
+  set(v) {
+    form.days = String(v || "")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+});
+
+function openCreate() {
+  editing.value = null;
+  Object.assign(form, {
+    title: "", type: "", days: [], address: "", suburb: "",
+    lat: null, lng: null, capacity: null, active: true,
   });
-});
+  saveError.value = "";
+  modal.show();
+}
 
-onBeforeUnmount(() => {
-  if (programsDT) {
-    programsDT.destroy(true);
-    programsDT = null;
+function openEdit(p) {
+  editing.value = p;
+  Object.assign(form, JSON.parse(JSON.stringify(p)));
+  saveError.value = "";
+  modal.show();
+}
+
+async function save() {
+  try {
+    saving.value = true;
+    saveError.value = "";
+    if (editing.value?.id) {
+      await updateProgram(editing.value.id, { ...form });
+      // update local row
+      const idx = rows.value.findIndex(r => r.id === editing.value.id);
+      if (idx >= 0) rows.value[idx] = { ...rows.value[idx], ...form };
+    } else {
+      const created = await createProgram({ ...form });
+      rows.value.unshift({ id: created.id, ...form });
+    }
+    modal.hide();
+  } catch (e) {
+    saveError.value = e.message || "Save failed.";
+  } finally {
+    saving.value = false;
   }
-  if (usersDT) {
-    usersDT.destroy(true);
-    usersDT = null;
+}
+
+function confirmDelete(p) {
+  toDelete.value = p;
+  deleteModal.show();
+}
+
+async function doDelete() {
+  try {
+    deleting.value = true;
+    await deleteProgramById(toDelete.value.id);
+    rows.value = rows.value.filter(r => r.id !== toDelete.value.id);
+    deleteModal.hide();
+  } catch (e) {
+    alert(e.message || "Delete failed.");
+  } finally {
+    deleting.value = false;
   }
-});
+}
 </script>
 
 <style scoped>
-/* Keep filter row visually subtle */
-thead .filters th {
-  background: #f8f9fa;
-  border-bottom: 0;
-}
-thead .filters input,
-thead .filters select {
-  min-width: 140px;
-}
+th[role="button"] { user-select: none; }
 </style>
