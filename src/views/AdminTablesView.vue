@@ -161,23 +161,24 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, h } from "vue";
 import * as bootstrap from "bootstrap";
 import { listPrograms, createProgram, updateProgram, deleteProgramById } from "../services/programsService";
 
-// Small sort icon component
+// ✅ Fixed SortIcon: no runtime template string
 const SortIcon = {
   props: { col: String, sort: Object },
-  template: `
-    <span class="ms-1" v-if="sort.col===col">
-      <i :class="sort.dir==='asc' ? 'bi bi-caret-up-fill' : 'bi bi-caret-down-fill'"></i>
-    </span>
-  `,
+  setup(props) {
+    return () => {
+      if (props.sort.col !== props.col) return null;
+      const klass = props.sort.dir === "asc" ? "bi bi-caret-up-fill" : "bi bi-caret-down-fill";
+      return h("span", { class: "ms-1" }, [h("i", { class: klass })]);
+    };
+  },
 };
 
 const rows = ref([]);
@@ -208,7 +209,6 @@ const filtered = computed(() => {
     if (av > bv) return sort.dir === "asc" ? 1 : -1;
     return 0;
   });
-  // keep page in range if filter changes
   if ((page.value - 1) * pageSize.value >= sorted.length) page.value = 1;
   return sorted;
 });
@@ -237,8 +237,8 @@ onMounted(async () => {
 // ── Modals ──────────────────────────────────────────────
 const modalRef  = ref(null);
 const deleteRef = ref(null);
-let formModal;    // bootstrap.Modal
-let deleteModal;  // bootstrap.Modal
+let formModal;
+let deleteModal;
 
 onMounted(async () => {
   await nextTick();

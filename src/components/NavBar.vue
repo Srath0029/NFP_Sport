@@ -1,9 +1,11 @@
+<!-- src/components/NavBar.vue -->
 <template>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
       <RouterLink class="navbar-brand" to="/">NFP Sport</RouterLink>
 
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
 
@@ -12,22 +14,19 @@
           <li class="nav-item"><RouterLink class="nav-link" to="/">Home</RouterLink></li>
           <li class="nav-item"><RouterLink class="nav-link" to="/about">About</RouterLink></li>
           <li class="nav-item"><RouterLink class="nav-link" to="/contact">Contact</RouterLink></li>
-          <li class="nav-item" v-if="user">
-            <RouterLink class="nav-link" to="/profile">Profile</RouterLink>
-          </li>
+          <li class="nav-item" v-if="user"><RouterLink class="nav-link" to="/profile">Profile</RouterLink></li>
 
-          <!-- ✅ Admin Dropdown -->
-          <li class="nav-item dropdown" v-if="user?.role === 'admin'">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#"
+          <!-- Admin dropdown -->
+          <li class="nav-item dropdown" v-if="isAdmin">
+            <button
+              class="nav-link dropdown-toggle btn btn-link"
               id="adminDropdown"
-              role="button"
+              type="button"
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
               Admin
-            </a>
+            </button>
             <ul class="dropdown-menu" aria-labelledby="adminDropdown">
               <li><RouterLink class="dropdown-item" to="/admin">Dashboard</RouterLink></li>
               <li><RouterLink class="dropdown-item" to="/admin/tables">Programs Table</RouterLink></li>
@@ -42,9 +41,9 @@
           <li v-if="!user" class="nav-item"><RouterLink class="nav-link" to="/register">Register</RouterLink></li>
 
           <li v-else class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+            <button class="nav-link dropdown-toggle btn btn-link" type="button" data-bs-toggle="dropdown">
               {{ user.username }} <span class="badge bg-secondary">{{ user.role }}</span>
-            </a>
+            </button>
             <ul class="dropdown-menu dropdown-menu-end">
               <li><button class="dropdown-item" @click="doLogout">Logout</button></li>
             </ul>
@@ -57,15 +56,22 @@
 
 <script setup>
 import { computed } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, RouterLink } from "vue-router";
 import { useAuth } from "../composables/auth";
 
 const router = useRouter();
 const { currentUser, logout } = useAuth();
-const user = computed(() => currentUser.value);
+
+const user = computed(() => currentUser.value || null);
+const isAdmin = computed(() => (currentUser.value && currentUser.value.role === "admin") || false);
 
 function doLogout() {
   logout();
   router.push({ name: "Home" });
 }
 </script>
+
+<style>
+/* Keep navbar on top of any overlapping content */
+.navbar { position: relative; z-index: 1100; }
+</style>
