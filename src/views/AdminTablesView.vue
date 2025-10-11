@@ -34,10 +34,16 @@
       <table class="table table-striped table-hover align-middle">
         <thead>
           <tr>
-            <th @click="sortBy('title')" role="button">Title <SortIcon :col="'title'" :sort="sort"/></th>
-            <th @click="sortBy('type')" role="button">Type <SortIcon :col="'type'" :sort="sort"/></th>
+            <th @click="sortBy('title')" role="button">
+              Title <SortIcon :col="'title'" :sort="sort" />
+            </th>
+            <th @click="sortBy('type')" role="button">
+              Type <SortIcon :col="'type'" :sort="sort" />
+            </th>
             <th>Days</th>
-            <th @click="sortBy('suburb')" role="button">Suburb <SortIcon :col="'suburb'" :sort="sort"/></th>
+            <th @click="sortBy('suburb')" role="button">
+              Suburb <SortIcon :col="'suburb'" :sort="sort" />
+            </th>
             <th class="text-end">Cap.</th>
             <th>Active</th>
             <th class="text-end">Actions</th>
@@ -76,14 +82,14 @@
       </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Create/Edit Modal -->
     <div class="modal fade" ref="modalRef" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <form @submit.prevent="save">
             <div class="modal-header">
               <h5 class="modal-title">{{ editing?.id ? 'Edit Program' : 'New Program' }}</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <div class="row g-3">
@@ -160,85 +166,88 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import * as bootstrap from "bootstrap";
 import { listPrograms, createProgram, updateProgram, deleteProgramById } from "../services/programsService";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
-// small sort icon component
+// Small sort icon component
 const SortIcon = {
   props: { col: String, sort: Object },
   template: `
     <span class="ms-1" v-if="sort.col===col">
       <i :class="sort.dir==='asc' ? 'bi bi-caret-up-fill' : 'bi bi-caret-down-fill'"></i>
     </span>
-  `
+  `,
 };
 
 const rows = ref([]);
 const loading = ref(true);
 const error = ref("");
 
+// filters / pagination / sorting
 const q = ref("");
 const onlyActive = ref(false);
 const page = ref(1);
 const pageSize = ref(10);
-const sort = reactive({ col: 'title', dir: 'asc' });
+const sort = reactive({ col: "title", dir: "asc" });
 
-function normalize(s) { return String(s || '').toLowerCase(); }
+function normalize(s) { return String(s || "").toLowerCase(); }
 
 const filtered = computed(() => {
   const term = normalize(q.value);
   const base = rows.value.filter(r => {
     if (onlyActive.value && !r.active) return false;
     if (!term) return true;
-    const hay =
-      `${r.title} ${r.type} ${r.suburb} ${(r.days||[]).join(' ')}`.toLowerCase();
+    const hay = `${r.title} ${r.type} ${r.suburb} ${(r.days || []).join(" ")}`.toLowerCase();
     return hay.includes(term);
   });
-  const sorted = [...base].sort((a,b) => {
-    const av = (a[sort.col] ?? '').toString().toLowerCase();
-    const bv = (b[sort.col] ?? '').toString().toLowerCase();
-    if (av < bv) return sort.dir === 'asc' ? -1 : 1;
-    if (av > bv) return sort.dir === 'asc' ? 1 : -1;
+  const sorted = [...base].sort((a, b) => {
+    const av = (a[sort.col] ?? "").toString().toLowerCase();
+    const bv = (b[sort.col] ?? "").toString().toLowerCase();
+    if (av < bv) return sort.dir === "asc" ? -1 : 1;
+    if (av > bv) return sort.dir === "asc" ? 1 : -1;
     return 0;
   });
+  // keep page in range if filter changes
+  if ((page.value - 1) * pageSize.value >= sorted.length) page.value = 1;
   return sorted;
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)));
-const startIdx = computed(() => (page.value - 1) * pageSize.value);
-const endIdx = computed(() => Math.min(filtered.value.length, startIdx.value + pageSize.value));
-const paged = computed(() => filtered.value.slice(startIdx.value, endIdx.value));
+const startIdx   = computed(() => (page.value - 1) * pageSize.value);
+const endIdx     = computed(() => Math.min(filtered.value.length, startIdx.value + pageSize.value));
+const paged      = computed(() => filtered.value.slice(startIdx.value, endIdx.value));
 
 function sortBy(col) {
-  if (sort.col === col) sort.dir = (sort.dir === 'asc' ? 'desc' : 'asc');
-  else { sort.col = col; sort.dir = 'asc'; }
+  if (sort.col === col) sort.dir = sort.dir === "asc" ? "desc" : "asc";
+  else { sort.col = col; sort.dir = "asc"; }
 }
 
 onMounted(async () => {
   try {
     rows.value = await listPrograms();
   } catch (e) {
-    error.value = e.message || "Failed to load programs.";
+    console.error(e);
+    error.value = e?.message || "Failed to load programs.";
   } finally {
     loading.value = false;
   }
 });
 
-// Modal state
-const modalRef = ref(null);
+// ── Modals ──────────────────────────────────────────────
+const modalRef  = ref(null);
 const deleteRef = ref(null);
-let modal, deleteModal;
+let formModal;    // bootstrap.Modal
+let deleteModal;  // bootstrap.Modal
 
-onMounted(() => {
-  // Bootstrap modals
-  modal = new window.bootstrap.Modal(modalRef.value);
-  deleteModal = new window.bootstrap.Modal(deleteRef.value);
+onMounted(async () => {
+  await nextTick();
+  if (modalRef.value)  formModal   = new bootstrap.Modal(modalRef.value);
+  if (deleteRef.value) deleteModal = new bootstrap.Modal(deleteRef.value);
 });
 
 // form state
-const editing = ref(null);      // whole program being edited (or null for create)
+const editing = ref(null);
 const form = reactive({
   title: "", type: "", days: [], address: "", suburb: "",
   lat: null, lng: null, capacity: null, active: true,
@@ -266,14 +275,14 @@ function openCreate() {
     lat: null, lng: null, capacity: null, active: true,
   });
   saveError.value = "";
-  modal.show();
+  formModal?.show();
 }
 
 function openEdit(p) {
   editing.value = p;
   Object.assign(form, JSON.parse(JSON.stringify(p)));
   saveError.value = "";
-  modal.show();
+  formModal?.show();
 }
 
 async function save() {
@@ -282,16 +291,16 @@ async function save() {
     saveError.value = "";
     if (editing.value?.id) {
       await updateProgram(editing.value.id, { ...form });
-      // update local row
       const idx = rows.value.findIndex(r => r.id === editing.value.id);
       if (idx >= 0) rows.value[idx] = { ...rows.value[idx], ...form };
     } else {
       const created = await createProgram({ ...form });
       rows.value.unshift({ id: created.id, ...form });
     }
-    modal.hide();
+    formModal?.hide();
   } catch (e) {
-    saveError.value = e.message || "Save failed.";
+    console.error(e);
+    saveError.value = e?.message || "Save failed.";
   } finally {
     saving.value = false;
   }
@@ -299,7 +308,7 @@ async function save() {
 
 function confirmDelete(p) {
   toDelete.value = p;
-  deleteModal.show();
+  deleteModal?.show();
 }
 
 async function doDelete() {
@@ -307,9 +316,10 @@ async function doDelete() {
     deleting.value = true;
     await deleteProgramById(toDelete.value.id);
     rows.value = rows.value.filter(r => r.id !== toDelete.value.id);
-    deleteModal.hide();
+    deleteModal?.hide();
   } catch (e) {
-    alert(e.message || "Delete failed.");
+    console.error(e);
+    alert(e?.message || "Delete failed.");
   } finally {
     deleting.value = false;
   }
