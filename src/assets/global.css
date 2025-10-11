@@ -1,0 +1,10 @@
+/* Prevent any stale backdrops/overlays from blocking clicks */
+.modal-backdrop,
+.offcanvas-backdrop,
+.overlay,
+[data-overlay] {
+  pointer-events: none !important;
+}
+
+/* Keep navbar clickable above any overlapping content */
+.navbar { position: sticky; top: 0; z-index: 2000; }

@@ -1,11 +1,17 @@
-<!-- src/components/NavBar.vue -->
 <template>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
       <RouterLink class="navbar-brand" to="/">NFP Sport</RouterLink>
 
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
         <span class="navbar-toggler-icon"></span>
       </button>
 
@@ -63,7 +69,7 @@ const router = useRouter();
 const { currentUser, logout } = useAuth();
 
 const user = computed(() => currentUser.value || null);
-const isAdmin = computed(() => (currentUser.value && currentUser.value.role === "admin") || false);
+const isAdmin = computed(() => !!(currentUser.value && currentUser.value.role === "admin"));
 
 function doLogout() {
   logout();
@@ -72,6 +78,6 @@ function doLogout() {
 </script>
 
 <style>
-/* Keep navbar on top of any overlapping content */
-.navbar { position: relative; z-index: 1100; }
+/* Keep navbar on top of anything weird */
+.navbar { position: sticky; top: 0; z-index: 2000; }
 </style>
