@@ -1,4 +1,4 @@
-// firestore.rules — Part C+D+E+F
+// firestore.rules — Part C + D + E + F (final)
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -30,51 +30,28 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
 
       // WRITE: only the owner (admins do not edit profile directly)
-      allow create, update, delete: if isOwner(userId)
-        && usersSchemaOK();
+      allow create, update, delete: if isOwner(userId) && usersSchemaOK();
 
       // Minimal schema enforcement
       function usersSchemaOK() {
         return (
-          // Allowed keys only (add fields here if you extend the doc)
+          // Allowed keys only (extend list if you add fields)
           hasOnlyKeys([
             'email','username','firstName','lastName','age','location','gender',
             'reason','role','createdAt','updatedAt','provider'
-          ]) ||
-          // allow merge updates that don't include all fields
-          true
+          ]) || true  // allow partial updates
         )
         &&
-        (
-          !('email' in request.resource.data)    || request.resource.data.email is string
-        ) &&
-        (
-          !('username' in request.resource.data) || request.resource.data.username is string
-        ) &&
-        (
-          !('firstName' in request.resource.data)|| request.resource.data.firstName is string
-        ) &&
-        (
-          !('lastName' in request.resource.data) || request.resource.data.lastName is string
-        ) &&
-        (
-          !('age' in request.resource.data)      || request.resource.data.age is int
-        ) &&
-        (
-          !('location' in request.resource.data) || request.resource.data.location is string
-        ) &&
-        (
-          !('gender' in request.resource.data)   || request.resource.data.gender is string
-        ) &&
-        (
-          !('reason' in request.resource.data)   || request.resource.data.reason is string
-        ) &&
-        (
-          !('role' in request.resource.data)     || request.resource.data.role is string
-        ) &&
-        (
-          !('provider' in request.resource.data) || request.resource.data.provider is string
-        );
+        (!('email' in request.resource.data)     || request.resource.data.email is string)
+        && (!('username' in request.resource.data) || request.resource.data.username is string)
+        && (!('firstName' in request.resource.data)|| request.resource.data.firstName is string)
+        && (!('lastName' in request.resource.data) || request.resource.data.lastName is string)
+        && (!('age' in request.resource.data)      || request.resource.data.age is int)
+        && (!('location' in request.resource.data) || request.resource.data.location is string)
+        && (!('gender' in request.resource.data)   || request.resource.data.gender is string)
+        && (!('reason' in request.resource.data)   || request.resource.data.reason is string)
+        && (!('role' in request.resource.data)     || request.resource.data.role is string)
+        && (!('provider' in request.resource.data) || request.resource.data.provider is string);
       }
     }
 
@@ -87,24 +64,24 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() && programsSchemaOK();
 
       function programsSchemaOK() {
-        return hasAllKeys(['title','type','days','address']) // core fields present on create
+        return hasAllKeys(['title','type','days','address']) // core fields must exist
           && (
             hasOnlyKeys([
               'title','type','days','address','suburb','lat','lng',
               'price','capacity','description','createdAt','updatedAt','active'
-            ]) || true
+            ]) || true // allow partial updates
           )
-          &&
-          (request.resource.data.title is string)
+          && (request.resource.data.title is string)
           && (request.resource.data.type is string)
           && (request.resource.data.days is list)
           && (request.resource.data.address is string)
-          && (!('suburb' in request.resource.data) || request.resource.data.suburb is string)
-          && (!('lat' in request.resource.data)    || request.resource.data.lat is number)
-          && (!('lng' in request.resource.data)    || request.resource.data.lng is number)
-          && (!('price' in request.resource.data)  || request.resource.data.price is number)
-          && (!('capacity' in request.resource.data) || request.resource.data.capacity is int)
-          && (!('active' in request.resource.data) || request.resource.data.active is bool);
+          && (!('suburb' in request.resource.data)    || request.resource.data.suburb is string)
+          // Firestore uses int/float. Accept either for coordinates/price.
+          && (!('lat' in request.resource.data)       || request.resource.data.lat is float || request.resource.data.lat is int)
+          && (!('lng' in request.resource.data)       || request.resource.data.lng is float || request.resource.data.lng is int)
+          && (!('price' in request.resource.data)     || request.resource.data.price is float || request.resource.data.price is int)
+          && (!('capacity' in request.resource.data)  || request.resource.data.capacity is int)
+          && (!('active' in request.resource.data)    || request.resource.data.active is bool);
       }
     }
 
@@ -117,17 +94,17 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.uid == request.auth.uid
         && enrolSchemaOK();
-      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid && enrolSchemaOK();
-      // Optional: allow admin status updates (comment in if you need)
+      allow update, delete: if isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && enrolSchemaOK();
+      // If you want admins to update enrolments too, uncomment:
       // allow update: if isAdmin() && enrolSchemaOK();
 
       function enrolSchemaOK() {
-        return (
-          hasOnlyKeys(['uid','programId','status','createdAt','notes']) || true
-        )
-        && (request.resource.data.uid is string)
-        && (request.resource.data.programId is string)
-        && (request.resource.data.status is string);
+        return (hasOnlyKeys(['uid','programId','status','createdAt','notes']) || true)
+          && (request.resource.data.uid is string)
+          && (request.resource.data.programId is string)
+          && (request.resource.data.status is string);
       }
     }
 
@@ -144,14 +121,12 @@ service cloud.firestore {
         && bookingSchemaOK();
 
       function bookingSchemaOK() {
-        return (
-          hasOnlyKeys(['uid','programId','dateStart','dateEnd','status','createdAt']) || true
-        )
-        && (request.resource.data.uid is string)
-        && (request.resource.data.programId is string)
-        && (request.resource.data.dateStart is string) // ISO strings from client
-        && (request.resource.data.dateEnd is string)
-        && (request.resource.data.status is string);
+        return (hasOnlyKeys(['uid','programId','dateStart','dateEnd','status','createdAt']) || true)
+          && (request.resource.data.uid is string)
+          && (request.resource.data.programId is string)
+          && (request.resource.data.dateStart is string) // ISO string if sent from client
+          && (request.resource.data.dateEnd is string)
+          && (request.resource.data.status is string);
       }
     }
 
@@ -193,32 +168,29 @@ service cloud.firestore {
     // Optional aggregate cache written by Cloud Function (E.1)
     match /ratingsMeta/{itemKey} {
       allow read: if true;
-      allow write: if isAdmin(); // or allow only CF via App Check / Admin SDK
+      allow write: if isAdmin(); // or restrict to CF via custom claims/App Check
     }
 
     // ==================================
     //  EMAILS QUEUE (D.2 via CF + SendGrid)
     // ==================================
-    // Admin writes "queued" emails; Cloud Function sends and updates status.
+    // If you ever queue emails in Firestore; not used by Cloudflare function.
     match /emails/{emailId} {
       allow read, write: if isAdmin() && emailSchemaOK();
 
       function emailSchemaOK() {
-        return (
-          hasOnlyKeys(['to','subject','body','attachments','status','createdAt','sentAt','error']) || true
-        )
-        && (request.resource.data.to is list)
-        && (request.resource.data.subject is string)
-        && (request.resource.data.body is string)
-        && (!('attachments' in request.resource.data) || request.resource.data.attachments is list)
-        && (!('status' in request.resource.data) || request.resource.data.status is string);
+        return (hasOnlyKeys(['to','subject','body','attachments','status','createdAt','sentAt','error']) || true)
+          && (request.resource.data.to is list)
+          && (request.resource.data.subject is string)
+          && (request.resource.data.body is string)
+          && (!('attachments' in request.resource.data) || request.resource.data.attachments is list)
+          && (!('status' in request.resource.data) || request.resource.data.status is string);
       }
     }
 
     // ==================================
     //  ANALYTICS (written by CF)  (E.1/E/F)
     // ==================================
-    // Publicly readable dashboards; only admin (or CF) writes.
     match /analytics/{collection}/{docId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -227,17 +199,14 @@ service cloud.firestore {
     // ==================================
     //  USER GEO FAVOURITES (E.2 bonus)
     // ==================================
-    // Users can save favourite clubs/venues under their uid.
     match /geofavs/{uid}/clubs/{clubId} {
       allow read, write: if isOwner(uid) && geofavSchemaOK();
 
       function geofavSchemaOK() {
-        return (
-          hasOnlyKeys(['name','lat','lng','addedAt','sport']) || true
-        )
-        && (request.resource.data.name is string)
-        && (request.resource.data.lat is number)
-        && (request.resource.data.lng is number);
+        return (hasOnlyKeys(['name','lat','lng','addedAt','sport']) || true)
+          && (request.resource.data.name is string)
+          && (request.resource.data.lat is float || request.resource.data.lat is int)
+          && (request.resource.data.lng is float || request.resource.data.lng is int);
       }
     }
   }
