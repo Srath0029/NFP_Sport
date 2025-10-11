@@ -1,7 +1,0 @@
-node_modules
-lib
-.eslintrc.cjs
-.eslintrc.js
-# Dependency directories
-node_modules/
-functions/node_modules/
