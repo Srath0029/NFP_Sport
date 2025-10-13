@@ -3,7 +3,10 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3 class="mb-0">Admin • Programs</h3>
       <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary btn-sm" @click="exportProgramsCsv">
+        <button class="btn btn-success btn-sm"
+                @click="exportCsv"
+                :disabled="filtered.length === 0"
+                title="Export currently filtered rows to CSV">
           Export CSV
         </button>
         <button class="btn btn-primary btn-sm" @click="openCreate">+ New Program</button>
@@ -11,20 +14,22 @@
       </div>
     </div>
 
-    <div class="row g-2 mb-3">
-      <div class="col-12 col-md-4">
-        <input v-model="q" class="form-control" placeholder="Search (title, type, suburb, days)" aria-label="Search programs">
+    <!-- Global + per-column filters -->
+    <div class="row g-2 mb-2">
+      <div class="col-12 col-lg-4">
+        <label class="form-label visually-hidden" for="progSearch">Search all</label>
+        <input id="progSearch" v-model="q" class="form-control" placeholder="Search all (title, type, suburb, days)">
       </div>
-      <div class="col-6 col-md-2">
-        <label class="visually-hidden" for="pageSizeSel">Page size</label>
+      <div class="col-6 col-lg-2">
+        <label class="form-label visually-hidden" for="pageSizeSel">Page size</label>
         <select id="pageSizeSel" v-model="pageSize" class="form-select">
           <option :value="10">10 / page</option>
           <option :value="25">25 / page</option>
           <option :value="50">50 / page</option>
         </select>
       </div>
-      <div class="col-6 col-md-2">
-        <label class="visually-hidden" for="activeSel">Filter active</label>
+      <div class="col-6 col-lg-2">
+        <label class="form-label visually-hidden" for="activeSel">Active filter</label>
         <select id="activeSel" v-model="onlyActive" class="form-select">
           <option :value="false">All</option>
           <option :value="true">Active only</option>
@@ -32,21 +37,41 @@
       </div>
     </div>
 
+    <!-- Per-column quick filters -->
+    <div class="row g-2 mb-3">
+      <div class="col-12 col-sm-6 col-lg-3">
+        <label class="form-label visually-hidden" for="fTitle">Filter by title</label>
+        <input id="fTitle" v-model="fTitle" class="form-control" placeholder="Filter: Title">
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <label class="form-label visually-hidden" for="fType">Filter by type</label>
+        <input id="fType" v-model="fType" class="form-control" placeholder="Filter: Type (e.g., soccer)">
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <label class="form-label visually-hidden" for="fSuburb">Filter by suburb</label>
+        <input id="fSuburb" v-model="fSuburb" class="form-control" placeholder="Filter: Suburb">
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <label class="form-label visually-hidden" for="fDays">Filter by day</label>
+        <input id="fDays" v-model="fDays" class="form-control" placeholder="Filter: Day (Mon/Tue/…)">
+      </div>
+    </div>
+
     <div v-if="loading" class="alert alert-info py-2">Loading programs…</div>
-    <div v-if="error" class="alert alert-danger py-2">{{ error }}</div>
+    <div v-if="error" class="alert alert-danger py-2" role="status" aria-live="polite">{{ error }}</div>
 
     <div class="table-responsive" v-if="!loading">
       <table class="table table-striped table-hover align-middle">
         <thead>
           <tr>
-            <th @click="sortBy('title')" role="button" aria-label="Sort by title">
+            <th @click="sortBy('title')" role="button" tabindex="0">
               Title <SortIcon :col="'title'" :sort="sort" />
             </th>
-            <th @click="sortBy('type')" role="button" aria-label="Sort by type">
+            <th @click="sortBy('type')" role="button" tabindex="0">
               Type <SortIcon :col="'type'" :sort="sort" />
             </th>
             <th>Days</th>
-            <th @click="sortBy('suburb')" role="button" aria-label="Sort by suburb">
+            <th @click="sortBy('suburb')" role="button" tabindex="0">
               Suburb <SortIcon :col="'suburb'" :sort="sort" />
             </th>
             <th class="text-end">Cap.</th>
@@ -79,7 +104,7 @@
       <!-- Pagination -->
       <div class="d-flex justify-content-between align-items-center">
         <div class="text-muted">Showing {{ startIdx + 1 }}–{{ endIdx }} of {{ filtered.length }}</div>
-        <div class="btn-group" role="group" aria-label="Pagination">
+        <div class="btn-group">
           <button class="btn btn-outline-secondary btn-sm" :disabled="page===1" @click="page--">Prev</button>
           <span class="btn btn-outline-secondary btn-sm disabled">Page {{ page }} / {{ totalPages }}</span>
           <button class="btn btn-outline-secondary btn-sm" :disabled="page===totalPages" @click="page++">Next</button>
@@ -88,57 +113,57 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div class="modal fade" ref="modalRef" tabindex="-1" aria-labelledby="programModalTitle" aria-hidden="true">
+    <div class="modal fade" ref="modalRef" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <form @submit.prevent="save">
             <div class="modal-header">
-              <h5 class="modal-title" id="programModalTitle">{{ editing?.id ? 'Edit Program' : 'New Program' }}</h5>
+              <h5 class="modal-title">{{ editing?.id ? 'Edit Program' : 'New Program' }}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label" for="fTitle">Title</label>
-                  <input id="fTitle" v-model.trim="form.title" class="form-control" required>
+                  <label class="form-label" for="progTitle">Title</label>
+                  <input id="progTitle" v-model.trim="form.title" class="form-control" required>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label" for="fType">Type</label>
-                  <input id="fType" v-model.trim="form.type" class="form-control" placeholder="soccer / yoga / basketball …" required>
+                  <label class="form-label" for="progType">Type</label>
+                  <input id="progType" v-model.trim="form.type" class="form-control" placeholder="soccer / yoga / basketball …" required>
                 </div>
                 <div class="col-md-12">
-                  <label class="form-label" for="fDays">Days (comma separated)</label>
-                  <input id="fDays" v-model="daysInput" class="form-control" placeholder="Mon, Wed, Fri">
+                  <label class="form-label" for="progDays">Days (comma separated)</label>
+                  <input id="progDays" v-model="daysInput" class="form-control" placeholder="Mon, Wed, Fri">
                 </div>
                 <div class="col-md-8">
-                  <label class="form-label" for="fAddress">Address</label>
-                  <input id="fAddress" v-model.trim="form.address" class="form-control">
+                  <label class="form-label" for="progAddress">Address</label>
+                  <input id="progAddress" v-model.trim="form.address" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label" for="fSuburb">Suburb</label>
-                  <input id="fSuburb" v-model.trim="form.suburb" class="form-control">
+                  <label class="form-label" for="progSuburb">Suburb</label>
+                  <input id="progSuburb" v-model.trim="form.suburb" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label" for="fLat">Latitude</label>
-                  <input id="fLat" v-model.number="form.lat" type="number" step="any" class="form-control">
+                  <label class="form-label" for="progLat">Latitude</label>
+                  <input id="progLat" v-model.number="form.lat" type="number" step="any" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label" for="fLng">Longitude</label>
-                  <input id="fLng" v-model.number="form.lng" type="number" step="any" class="form-control">
+                  <label class="form-label" for="progLng">Longitude</label>
+                  <input id="progLng" v-model.number="form.lng" type="number" step="any" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label" for="fCap">Capacity</label>
-                  <input id="fCap" v-model.number="form.capacity" type="number" min="0" class="form-control">
+                  <label class="form-label" for="progCap">Capacity</label>
+                  <input id="progCap" v-model.number="form.capacity" type="number" min="0" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label" for="fActive">Active</label>
-                  <select id="fActive" v-model="form.active" class="form-select">
+                  <label class="form-label" for="progActive">Active</label>
+                  <select id="progActive" v-model="form.active" class="form-select">
                     <option :value="true">Yes</option>
                     <option :value="false">No</option>
                   </select>
                 </div>
               </div>
-              <div v-if="saveError" class="alert alert-danger mt-3">{{ saveError }}</div>
+              <div v-if="saveError" class="alert alert-danger mt-3" role="status" aria-live="polite">{{ saveError }}</div>
             </div>
             <div class="modal-footer">
               <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
@@ -152,10 +177,10 @@
     </div>
 
     <!-- Delete confirm -->
-    <div class="modal fade" ref="deleteRef" tabindex="-1" aria-labelledby="delTitle" aria-hidden="true">
+    <div class="modal fade" ref="deleteRef" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header"><h5 class="modal-title" id="delTitle">Delete Program</h5></div>
+          <div class="modal-header"><h5 class="modal-title">Delete Program</h5></div>
           <div class="modal-body">
             Are you sure you want to delete <strong>{{ toDelete?.title }}</strong>?
           </div>
@@ -174,7 +199,7 @@ import { ref, reactive, computed, onMounted, nextTick, h } from "vue";
 import * as bootstrap from "bootstrap";
 import { listPrograms, createProgram, updateProgram, deleteProgramById } from "../services/programsService";
 
-// ✅ SortIcon uses render fn (no runtime template compile)
+/* Sort icon as render function (no template compilation) */
 const SortIcon = {
   props: { col: String, sort: Object },
   setup(props) {
@@ -191,22 +216,47 @@ const loading = ref(true);
 const error = ref("");
 
 // filters / pagination / sorting
-const q = ref("");
+const q = ref("");          // global
+const fTitle = ref("");     // per-column
+const fType = ref("");
+const fSuburb = ref("");
+const fDays = ref("");
+
 const onlyActive = ref(false);
 const page = ref(1);
 const pageSize = ref(10);
 const sort = reactive({ col: "title", dir: "asc" });
 
-function normalize(s) { return String(s || "").toLowerCase(); }
+function normalize(s) { return String(s || "").toLowerCase().trim(); }
 
 const filtered = computed(() => {
-  const term = normalize(q.value);
+  const global = normalize(q.value);
+  const ft = normalize(fTitle.value);
+  const fty = normalize(fType.value);
+  const fs = normalize(fSuburb.value);
+  const fd = normalize(fDays.value);
+
   const base = rows.value.filter(r => {
     if (onlyActive.value && !r.active) return false;
-    if (!term) return true;
-    const hay = `${r.title} ${r.type} ${r.suburb} ${(r.days || []).join(" ")}`.toLowerCase();
-    return hay.includes(term);
+
+    // global match (in any)
+    if (global) {
+      const hay = `${r.title} ${r.type} ${r.suburb} ${(r.days || []).join(" ")}`.toLowerCase();
+      if (!hay.includes(global)) return false;
+    }
+
+    // per-column AND filters
+    if (ft && !normalize(r.title).includes(ft)) return false;
+    if (fty && !normalize(r.type).includes(fty)) return false;
+    if (fs && !normalize(r.suburb).includes(fs)) return false;
+    if (fd) {
+      const dset = (r.days || []).map(d => normalize(d));
+      const match = dset.some(d => d.includes(fd));
+      if (!match) return false;
+    }
+    return true;
   });
+
   const sorted = [...base].sort((a, b) => {
     const av = (a[sort.col] ?? "").toString().toLowerCase();
     const bv = (b[sort.col] ?? "").toString().toLowerCase();
@@ -214,6 +264,7 @@ const filtered = computed(() => {
     if (av > bv) return sort.dir === "asc" ? 1 : -1;
     return 0;
   });
+
   if ((page.value - 1) * pageSize.value >= sorted.length) page.value = 1;
   return sorted;
 });
@@ -330,33 +381,50 @@ async function doDelete() {
   }
 }
 
-/* ── Export CSV (E.4) ───────────────────────────────── */
-function exportProgramsCsv() {
-  const header = ["id","title","type","suburb","capacity","active","days"];
-  const rowsToExport = filtered.value.map(r => ({
-    id: r.id,
-    title: r.title || "",
-    type: r.type || "",
-    suburb: r.suburb || "",
-    capacity: r.capacity ?? "",
-    active: r.active ? "true" : "false",
-    days: (r.days || []).join("|"),
-  }));
-  downloadCsv(header, rowsToExport, "programs.csv");
+/* ── CSV Export (exports the *filtered* data set) ───────────────────────────── */
+function csvEscape(v) {
+  if (v == null) return "";
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
-function downloadCsv(header, objects, filename) {
-  const line = arr => arr.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",");
-  const body = objects.map(o => line(header.map(h => o[h])));
-  const csv  = [line(header), ...body].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+function toCsv(rows, headers) {
+  const head = headers.map(h => csvEscape(h.label)).join(",");
+  const body = rows.map(r =>
+    headers.map(h => {
+      const val = h.key === "days" ? (r.days || []).join("; ")
+        : h.key === "active" ? (r.active ? "Yes" : "No")
+        : r[h.key];
+      return csvEscape(val);
+    }).join(",")
+  ).join("\n");
+  return head + "\n" + body + "\n";
+}
+function download(filename, text) {
+  const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
+}
+function exportCsv() {
+  const headers = [
+    { key: "title",    label: "Title" },
+    { key: "type",     label: "Type" },
+    { key: "days",     label: "Days" },
+    { key: "suburb",   label: "Suburb" },
+    { key: "address",  label: "Address" },
+    { key: "lat",      label: "Latitude" },
+    { key: "lng",      label: "Longitude" },
+    { key: "capacity", label: "Capacity" },
+    { key: "active",   label: "Active" },
+  ];
+  const csv = toCsv(filtered.value, headers);
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  download(`programs-${stamp}.csv`, csv);
 }
 </script>
 
 <style scoped>
 th[role="button"] { user-select: none; }
-/* Helper class for skip/hidden labels if you use it elsewhere */
-.visually-hidden { position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
 </style>
