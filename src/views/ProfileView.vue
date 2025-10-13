@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-4" style="max-width: 860px;">
+  <div class="container mt-4" style="max-width: 860px;" id="main">
     <div class="card p-4 shadow-sm">
       <h3 class="mb-3">Your Profile</h3>
 
@@ -7,27 +7,33 @@
         <!-- Row 1: First / Last -->
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label class="form-label">First Name</label>
+            <label class="form-label" for="pfFirst">First Name</label>
             <input
+              id="pfFirst"
               type="text"
               v-model.trim="firstName"
               class="form-control"
               :class="{ 'is-invalid': touched.firstName && errors.firstName }"
               @input="validateField('firstName')"
               @blur="touch('firstName')"
+              autocomplete="given-name"
+              :aria-invalid="touched.firstName && !!errors.firstName ? 'true' : 'false'"
             />
             <div class="invalid-feedback" v-if="touched.firstName && errors.firstName">{{ errors.firstName }}</div>
           </div>
 
           <div class="col-md-6 mb-3">
-            <label class="form-label">Last Name</label>
+            <label class="form-label" for="pfLast">Last Name</label>
             <input
+              id="pfLast"
               type="text"
               v-model.trim="lastName"
               class="form-control"
               :class="{ 'is-invalid': touched.lastName && errors.lastName }"
               @input="validateField('lastName')"
               @blur="touch('lastName')"
+              autocomplete="family-name"
+              :aria-invalid="touched.lastName && !!errors.lastName ? 'true' : 'false'"
             />
             <div class="invalid-feedback" v-if="touched.lastName && errors.lastName">{{ errors.lastName }}</div>
           </div>
@@ -36,8 +42,9 @@
         <!-- Row 2: Age / Location -->
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label class="form-label">Age</label>
+            <label class="form-label" for="pfAge">Age</label>
             <input
+              id="pfAge"
               type="number"
               v-model.number="age"
               class="form-control"
@@ -45,13 +52,15 @@
               min="13" max="120"
               @input="validateField('age')"
               @blur="touch('age')"
+              :aria-invalid="touched.age && !!errors.age ? 'true' : 'false'"
             />
             <div class="invalid-feedback" v-if="touched.age && errors.age">{{ errors.age }}</div>
           </div>
 
           <div class="col-md-6 mb-3">
-            <label class="form-label">Location (Suburb)</label>
+            <label class="form-label" for="pfLocation">Location (Suburb)</label>
             <input
+              id="pfLocation"
               type="text"
               v-model.trim="location"
               class="form-control"
@@ -59,6 +68,8 @@
               placeholder="e.g., Footscray"
               @input="validateField('location')"
               @blur="touch('location')"
+              autocomplete="address-level2"
+              :aria-invalid="touched.location && !!errors.location ? 'true' : 'false'"
             />
             <div class="invalid-feedback" v-if="touched.location && errors.location">{{ errors.location }}</div>
           </div>
@@ -67,13 +78,15 @@
         <!-- Row 3: Gender -->
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label class="form-label">Gender</label>
+            <label class="form-label" for="pfGender">Gender</label>
             <select
+              id="pfGender"
               v-model="gender"
               class="form-select"
               :class="{ 'is-invalid': touched.gender && errors.gender }"
               @change="validateField('gender')"
               @blur="touch('gender')"
+              :aria-invalid="touched.gender && !!errors.gender ? 'true' : 'false'"
             >
               <option disabled value="">Please select</option>
               <option>Female</option>
@@ -88,8 +101,9 @@
 
         <!-- Row 4: Reason -->
         <div class="mb-3">
-          <label class="form-label">Reason for joining</label>
+          <label class="form-label" for="pfReason">Reason for joining</label>
           <textarea
+            id="pfReason"
             v-model.trim="reason"
             class="form-control"
             rows="3"
@@ -98,10 +112,12 @@
             maxlength="240"
             @input="validateField('reason')"
             @blur="touch('reason')"
+            aria-describedby="reasonHelp reasonCount"
+            :aria-invalid="touched.reason && !!errors.reason ? 'true' : 'false'"
           ></textarea>
           <div class="d-flex justify-content-between">
-            <small class="text-muted">Min 10 characters</small>
-            <small class="text-muted">{{ reason.length }}/240</small>
+            <small id="reasonHelp" class="text-muted">Min 10 characters</small>
+            <small id="reasonCount" class="text-muted">{{ reason.length }}/240</small>
           </div>
           <div class="invalid-feedback" v-if="touched.reason && errors.reason">{{ errors.reason }}</div>
         </div>
@@ -115,8 +131,8 @@
         </div>
 
         <!-- Messages -->
-        <p class="text-success mt-3" v-if="saved">Profile saved.</p>
-        <p class="text-danger mt-3" v-if="error">{{ error }}</p>
+        <p class="text-success mt-3" v-if="saved" role="status" aria-live="polite">Profile saved.</p>
+        <p class="text-danger mt-3" v-if="error" role="status" aria-live="polite">{{ error }}</p>
       </form>
     </div>
   </div>

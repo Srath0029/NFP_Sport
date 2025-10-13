@@ -1,16 +1,29 @@
 <template>
-  <div class="container mt-5" style="max-width: 720px;">
+  <div class="container mt-5" style="max-width: 720px;" id="main">
     <div class="card p-4 shadow-sm">
       <h3 class="mb-3">Create Account</h3>
 
       <form @submit.prevent="submit" novalidate>
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label class="form-label">Username</label>
+            <label class="form-label" for="regUsername">Username</label>
             <input
+              id="regUsername"
               v-model.trim="username"
               class="form-control"
               :class="{ 'is-invalid': touched.username && !!errors.username }"
+              @input="validate('username')"
+              @blur="touch('username')"
+              required
+              autocomplete="username"
+              aria-invalid="true"
+              v-if="touched.username && !!errors.username"
+            />
+            <input
+              v-else
+              id="regUsername"
+              v-model.trim="username"
+              class="form-control"
               @input="validate('username')"
               @blur="touch('username')"
               required
@@ -20,8 +33,9 @@
           </div>
 
           <div class="col-md-6 mb-3">
-            <label class="form-label">Email</label>
+            <label class="form-label" for="regEmail">Email</label>
             <input
+              id="regEmail"
               v-model.trim="email"
               type="email"
               class="form-control"
@@ -30,6 +44,7 @@
               @blur="touch('email')"
               required
               autocomplete="email"
+              :aria-invalid="touched.email && !!errors.email ? 'true' : 'false'"
             />
             <div class="invalid-feedback" v-if="touched.email && errors.email">{{ errors.email }}</div>
           </div>
@@ -37,8 +52,9 @@
 
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label class="form-label">Password</label>
+            <label class="form-label" for="regPassword">Password</label>
             <input
+              id="regPassword"
               v-model="password"
               type="password"
               class="form-control"
@@ -48,13 +64,17 @@
               required
               autocomplete="new-password"
               placeholder="Min 8 chars incl. a number"
+              aria-describedby="pwdHelp"
+              :aria-invalid="touched.password && !!errors.password ? 'true' : 'false'"
             />
+            <div id="pwdHelp" class="form-text">Minimum 8 characters and include a number.</div>
             <div class="invalid-feedback" v-if="touched.password && errors.password">{{ errors.password }}</div>
           </div>
 
           <div class="col-md-6 mb-3">
-            <label class="form-label">Confirm Password</label>
+            <label class="form-label" for="regConfirm">Confirm Password</label>
             <input
+              id="regConfirm"
               v-model="confirm"
               type="password"
               class="form-control"
@@ -63,6 +83,7 @@
               @blur="touch('confirm')"
               required
               autocomplete="new-password"
+              :aria-invalid="touched.confirm && !!errors.confirm ? 'true' : 'false'"
             />
             <div class="invalid-feedback" v-if="touched.confirm && errors.confirm">{{ errors.confirm }}</div>
           </div>
@@ -75,8 +96,8 @@
           <RouterLink class="btn btn-outline-secondary" to="/login">I have an account</RouterLink>
         </div>
 
-        <p class="text-success mt-3" v-if="success">{{ success }}</p>
-        <p class="text-danger mt-3" v-if="error">{{ error }}</p>
+        <p class="text-success mt-3" v-if="success" role="status" aria-live="polite">{{ success }}</p>
+        <p class="text-danger mt-3" v-if="error" role="status" aria-live="polite">{{ error }}</p>
       </form>
     </div>
   </div>
@@ -91,7 +112,7 @@ const router = useRouter();
 const { register } = useAuth();
 
 const username = ref("");
-const email = ref("");
+the email = ref("");
 const password = ref("");
 const confirm = ref("");
 
@@ -134,7 +155,7 @@ async function submit() {
   loading.value = true;
   try {
     await register({ email: email.value, password: password.value, username: username.value });
-    router.push({ name: "Profile" }); // go complete profile
+    router.push({ name: "Profile" });
   } catch (e) {
     error.value = e?.message || "Registration failed.";
   } finally {

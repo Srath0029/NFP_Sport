@@ -2,7 +2,7 @@
   <div class="card p-4 mb-4 shadow-sm">
     <h3 class="mb-3">Register User</h3>
 
-    <form @submit.prevent="handleSubmit" novalidate>
+    <form @submit.prevent="handleSubmit" novalidate aria-describedby="formStatus">
       <!-- Row 1: First / Last -->
       <div class="row">
         <div class="col-md-6 mb-3">
@@ -13,9 +13,11 @@
             v-model.trim="firstName"
             class="form-control"
             :class="{ 'is-invalid': touched.firstName && errors.firstName }"
+            :aria-invalid="touched.firstName && !!errors.firstName ? 'true' : 'false'"
             autocomplete="given-name"
             @input="validateField('firstName')"
             @blur="touch('firstName')"
+            required
           />
           <div class="invalid-feedback" v-if="touched.firstName && errors.firstName">
             {{ errors.firstName }}
@@ -30,9 +32,11 @@
             v-model.trim="lastName"
             class="form-control"
             :class="{ 'is-invalid': touched.lastName && errors.lastName }"
+            :aria-invalid="touched.lastName && !!errors.lastName ? 'true' : 'false'"
             autocomplete="family-name"
             @input="validateField('lastName')"
             @blur="touch('lastName')"
+            required
           />
           <div class="invalid-feedback" v-if="touched.lastName && errors.lastName">
             {{ errors.lastName }}
@@ -50,12 +54,15 @@
             v-model.trim="username"
             class="form-control"
             :class="{ 'is-invalid': touched.username && errors.username }"
+            :aria-invalid="touched.username && !!errors.username ? 'true' : 'false'"
             placeholder="min 3 characters; letters/numbers/._-"
             autocomplete="username"
+            aria-describedby="usernameHelp"
             @input="validateField('username')"
             @blur="touch('username')"
+            required
           />
-          <small class="text-muted">Allowed: letters, numbers, dot, underscore, hyphen</small>
+          <small id="usernameHelp" class="text-muted">Allowed: letters, numbers, dot, underscore, hyphen</small>
           <div class="invalid-feedback" v-if="touched.username && errors.username">
             {{ errors.username }}
           </div>
@@ -69,9 +76,11 @@
             v-model.trim="email"
             class="form-control"
             :class="{ 'is-invalid': touched.email && errors.email }"
+            :aria-invalid="touched.email && !!errors.email ? 'true' : 'false'"
             autocomplete="email"
             @input="validateField('email')"
             @blur="touch('email')"
+            required
           />
           <div class="invalid-feedback" v-if="touched.email && errors.email">
             {{ errors.email }}
@@ -89,10 +98,13 @@
             v-model="password"
             class="form-control"
             :class="{ 'is-invalid': touched.password && errors.password }"
+            :aria-invalid="touched.password && !!errors.password ? 'true' : 'false'"
             placeholder="min 8 chars incl. a number"
             autocomplete="new-password"
+            aria-describedby="pwdHelp pwdStrength"
             @input="() => { validateField('password'); validateField('confirmPassword'); }"
             @blur="touch('password')"
+            required
           />
           <div class="invalid-feedback" v-if="touched.password && errors.password">
             {{ errors.password }}
@@ -100,10 +112,23 @@
 
           <!-- Strength meter -->
           <div class="mt-2">
-            <div class="progress" style="height: 6px;">
-              <div class="progress-bar" role="progressbar" :style="{ width: strength + '%' }"></div>
+            <div
+              id="pwdStrength"
+              class="progress"
+              style="height: 6px;"
+              aria-hidden="true"
+            >
+              <div
+                class="progress-bar"
+                role="progressbar"
+                :style="{ width: strength + '%' }"
+                :aria-valuenow="strength"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-label="Password strength"
+              ></div>
             </div>
-            <small class="text-muted">Password strength</small>
+            <small id="pwdHelp" class="form-text text-muted">Password strength</small>
           </div>
         </div>
 
@@ -115,9 +140,11 @@
             v-model="confirmPassword"
             class="form-control"
             :class="{ 'is-invalid': touched.confirmPassword && errors.confirmPassword }"
+            :aria-invalid="touched.confirmPassword && !!errors.confirmPassword ? 'true' : 'false'"
             autocomplete="new-password"
             @input="validateField('confirmPassword')"
             @blur="touch('confirmPassword')"
+            required
           />
           <div class="invalid-feedback" v-if="touched.confirmPassword && errors.confirmPassword">
             {{ errors.confirmPassword }}
@@ -135,9 +162,11 @@
             v-model.number="age"
             class="form-control"
             :class="{ 'is-invalid': touched.age && errors.age }"
+            :aria-invalid="touched.age && !!errors.age ? 'true' : 'false'"
             min="13" max="120"
             @input="validateField('age')"
             @blur="touch('age')"
+            required
           />
           <div class="invalid-feedback" v-if="touched.age && errors.age">
             {{ errors.age }}
@@ -152,9 +181,11 @@
             v-model.trim="location"
             class="form-control"
             :class="{ 'is-invalid': touched.location && errors.location }"
+            :aria-invalid="touched.location && !!errors.location ? 'true' : 'false'"
             placeholder="e.g., Footscray"
             @input="validateField('location')"
             @blur="touch('location')"
+            required
           />
           <div class="invalid-feedback" v-if="touched.location && errors.location">
             {{ errors.location }}
@@ -171,8 +202,10 @@
             v-model="gender"
             class="form-select"
             :class="{ 'is-invalid': touched.gender && errors.gender }"
+            :aria-invalid="touched.gender && !!errors.gender ? 'true' : 'false'"
             @change="validateField('gender')"
             @blur="touch('gender')"
+            required
           >
             <option disabled value="">Please select</option>
             <option>Female</option>
@@ -196,14 +229,17 @@
           class="form-control"
           rows="3"
           :class="{ 'is-invalid': touched.reason && errors.reason }"
+          :aria-invalid="touched.reason && !!errors.reason ? 'true' : 'false'"
           placeholder="Tell us why you want to join…"
           maxlength="240"
+          aria-describedby="reasonMin reasonCount"
           @input="validateField('reason')"
           @blur="touch('reason')"
+          required
         ></textarea>
         <div class="d-flex justify-content-between">
-          <small class="text-muted">Min 10 characters</small>
-          <small class="text-muted">{{ reason.length }}/240</small>
+          <small id="reasonMin" class="text-muted">Min 10 characters</small>
+          <small id="reasonCount" class="text-muted">{{ reason.length }}/240</small>
         </div>
         <div class="invalid-feedback" v-if="touched.reason && errors.reason">
           {{ errors.reason }}
@@ -211,9 +247,10 @@
       </div>
 
       <!-- Submit + Clear -->
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 align-items-center">
         <button type="submit" class="btn btn-primary">Submit</button>
         <button type="button" class="btn btn-secondary" @click="clearForm">Clear</button>
+        <span id="formStatus" class="ms-2" role="status" aria-live="polite">{{ statusMsg }}</span>
       </div>
     </form>
   </div>
@@ -247,6 +284,8 @@ const touched = ref({
   password: false, confirmPassword: false, age: false, location: false,
   gender: false, reason: false
 });
+
+const statusMsg = ref("");
 
 const strength = computed(() => {
   let s = 0;
@@ -314,14 +353,18 @@ function validateAll() {
 const emit = defineEmits(["formSubmitted"]);
 
 function handleSubmit() {
-  if (!validateAll()) return;
+  statusMsg.value = "";
+  if (!validateAll()) {
+    statusMsg.value = "Please fix the highlighted errors.";
+    return;
+  }
 
   emit("formSubmitted", {
     firstName: firstName.value.trim(),
     lastName: lastName.value.trim(),
     username: username.value.trim(),
     email: email.value.trim(),
-    password: password.value, // only for assignment demo; don’t display/store in UI
+    password: password.value, // for the assignment demo only
     age: age.value,
     location: location.value.trim(),
     gender: gender.value,
@@ -329,6 +372,7 @@ function handleSubmit() {
     createdAt: new Date().toISOString()
   });
 
+  statusMsg.value = "Form submitted.";
   clearForm();
 }
 
