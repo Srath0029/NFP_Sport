@@ -3,6 +3,9 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3 class="mb-0">Admin • Programs</h3>
       <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm" @click="exportProgramsCsv">
+          Export CSV
+        </button>
         <button class="btn btn-primary btn-sm" @click="openCreate">+ New Program</button>
         <RouterLink class="btn btn-outline-secondary btn-sm" to="/admin">Dashboard</RouterLink>
       </div>
@@ -10,17 +13,19 @@
 
     <div class="row g-2 mb-3">
       <div class="col-12 col-md-4">
-        <input v-model="q" class="form-control" placeholder="Search (title, type, suburb, days)">
+        <input v-model="q" class="form-control" placeholder="Search (title, type, suburb, days)" aria-label="Search programs">
       </div>
       <div class="col-6 col-md-2">
-        <select v-model="pageSize" class="form-select">
+        <label class="visually-hidden" for="pageSizeSel">Page size</label>
+        <select id="pageSizeSel" v-model="pageSize" class="form-select">
           <option :value="10">10 / page</option>
           <option :value="25">25 / page</option>
           <option :value="50">50 / page</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
-        <select v-model="onlyActive" class="form-select">
+        <label class="visually-hidden" for="activeSel">Filter active</label>
+        <select id="activeSel" v-model="onlyActive" class="form-select">
           <option :value="false">All</option>
           <option :value="true">Active only</option>
         </select>
@@ -34,14 +39,14 @@
       <table class="table table-striped table-hover align-middle">
         <thead>
           <tr>
-            <th @click="sortBy('title')" role="button">
+            <th @click="sortBy('title')" role="button" aria-label="Sort by title">
               Title <SortIcon :col="'title'" :sort="sort" />
             </th>
-            <th @click="sortBy('type')" role="button">
+            <th @click="sortBy('type')" role="button" aria-label="Sort by type">
               Type <SortIcon :col="'type'" :sort="sort" />
             </th>
             <th>Days</th>
-            <th @click="sortBy('suburb')" role="button">
+            <th @click="sortBy('suburb')" role="button" aria-label="Sort by suburb">
               Suburb <SortIcon :col="'suburb'" :sort="sort" />
             </th>
             <th class="text-end">Cap.</th>
@@ -74,7 +79,7 @@
       <!-- Pagination -->
       <div class="d-flex justify-content-between align-items-center">
         <div class="text-muted">Showing {{ startIdx + 1 }}–{{ endIdx }} of {{ filtered.length }}</div>
-        <div class="btn-group">
+        <div class="btn-group" role="group" aria-label="Pagination">
           <button class="btn btn-outline-secondary btn-sm" :disabled="page===1" @click="page--">Prev</button>
           <span class="btn btn-outline-secondary btn-sm disabled">Page {{ page }} / {{ totalPages }}</span>
           <button class="btn btn-outline-secondary btn-sm" :disabled="page===totalPages" @click="page++">Next</button>
@@ -83,51 +88,51 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div class="modal fade" ref="modalRef" tabindex="-1">
+    <div class="modal fade" ref="modalRef" tabindex="-1" aria-labelledby="programModalTitle" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <form @submit.prevent="save">
             <div class="modal-header">
-              <h5 class="modal-title">{{ editing?.id ? 'Edit Program' : 'New Program' }}</h5>
+              <h5 class="modal-title" id="programModalTitle">{{ editing?.id ? 'Edit Program' : 'New Program' }}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Title</label>
-                  <input v-model.trim="form.title" class="form-control" required>
+                  <label class="form-label" for="fTitle">Title</label>
+                  <input id="fTitle" v-model.trim="form.title" class="form-control" required>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Type</label>
-                  <input v-model.trim="form.type" class="form-control" placeholder="soccer / yoga / basketball …" required>
+                  <label class="form-label" for="fType">Type</label>
+                  <input id="fType" v-model.trim="form.type" class="form-control" placeholder="soccer / yoga / basketball …" required>
                 </div>
                 <div class="col-md-12">
-                  <label class="form-label">Days (comma separated)</label>
-                  <input v-model="daysInput" class="form-control" placeholder="Mon, Wed, Fri">
+                  <label class="form-label" for="fDays">Days (comma separated)</label>
+                  <input id="fDays" v-model="daysInput" class="form-control" placeholder="Mon, Wed, Fri">
                 </div>
                 <div class="col-md-8">
-                  <label class="form-label">Address</label>
-                  <input v-model.trim="form.address" class="form-control">
+                  <label class="form-label" for="fAddress">Address</label>
+                  <input id="fAddress" v-model.trim="form.address" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Suburb</label>
-                  <input v-model.trim="form.suburb" class="form-control">
+                  <label class="form-label" for="fSuburb">Suburb</label>
+                  <input id="fSuburb" v-model.trim="form.suburb" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Latitude</label>
-                  <input v-model.number="form.lat" type="number" step="any" class="form-control">
+                  <label class="form-label" for="fLat">Latitude</label>
+                  <input id="fLat" v-model.number="form.lat" type="number" step="any" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Longitude</label>
-                  <input v-model.number="form.lng" type="number" step="any" class="form-control">
+                  <label class="form-label" for="fLng">Longitude</label>
+                  <input id="fLng" v-model.number="form.lng" type="number" step="any" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Capacity</label>
-                  <input v-model.number="form.capacity" type="number" min="0" class="form-control">
+                  <label class="form-label" for="fCap">Capacity</label>
+                  <input id="fCap" v-model.number="form.capacity" type="number" min="0" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Active</label>
-                  <select v-model="form.active" class="form-select">
+                  <label class="form-label" for="fActive">Active</label>
+                  <select id="fActive" v-model="form.active" class="form-select">
                     <option :value="true">Yes</option>
                     <option :value="false">No</option>
                   </select>
@@ -147,10 +152,10 @@
     </div>
 
     <!-- Delete confirm -->
-    <div class="modal fade" ref="deleteRef" tabindex="-1">
+    <div class="modal fade" ref="deleteRef" tabindex="-1" aria-labelledby="delTitle" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header"><h5 class="modal-title">Delete Program</h5></div>
+          <div class="modal-header"><h5 class="modal-title" id="delTitle">Delete Program</h5></div>
           <div class="modal-body">
             Are you sure you want to delete <strong>{{ toDelete?.title }}</strong>?
           </div>
@@ -169,7 +174,7 @@ import { ref, reactive, computed, onMounted, nextTick, h } from "vue";
 import * as bootstrap from "bootstrap";
 import { listPrograms, createProgram, updateProgram, deleteProgramById } from "../services/programsService";
 
-// ✅ Fixed SortIcon: no runtime template string
+// ✅ SortIcon uses render fn (no runtime template compile)
 const SortIcon = {
   props: { col: String, sort: Object },
   setup(props) {
@@ -324,8 +329,34 @@ async function doDelete() {
     deleting.value = false;
   }
 }
+
+/* ── Export CSV (E.4) ───────────────────────────────── */
+function exportProgramsCsv() {
+  const header = ["id","title","type","suburb","capacity","active","days"];
+  const rowsToExport = filtered.value.map(r => ({
+    id: r.id,
+    title: r.title || "",
+    type: r.type || "",
+    suburb: r.suburb || "",
+    capacity: r.capacity ?? "",
+    active: r.active ? "true" : "false",
+    days: (r.days || []).join("|"),
+  }));
+  downloadCsv(header, rowsToExport, "programs.csv");
+}
+function downloadCsv(header, objects, filename) {
+  const line = arr => arr.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",");
+  const body = objects.map(o => line(header.map(h => o[h])));
+  const csv  = [line(header), ...body].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
 </script>
 
 <style scoped>
 th[role="button"] { user-select: none; }
+/* Helper class for skip/hidden labels if you use it elsewhere */
+.visually-hidden { position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
 </style>
