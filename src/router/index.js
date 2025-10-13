@@ -23,6 +23,7 @@ const routes = [
   { path: "/register", name: "Register", component: RegisterView },
   { path: "/about", name: "About", component: AboutView },
   { path: "/contact", name: "Contact", component: ContactView },
+  { path: "/map", name: "ProgramsMap", component: () => import("../views/ProgramsMapView.vue") },
 
   { path: "/profile", name: "Profile", component: ProfileView, meta: { requiresAuth: true } },
 
