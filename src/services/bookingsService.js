@@ -1,29 +1,33 @@
-// src/services/bookingsService.js
+// --- add below your existing imports ---
 import { db } from "../firebase";
 import {
-  collection, query, where, orderBy, getDocs, deleteDoc, doc,
+  collection, query, where, orderBy, getDocs, doc, updateDoc, serverTimestamp,
 } from "firebase/firestore";
 
-// existing: export async function createBooking(payload) { ... } // via HTTPS fn
+const bookingsCol = collection(db, "bookings");
 
-const col = collection(db, "bookings");
-
-export async function listUserBookings(uid) {
-  const q = query(col, where("uid", "==", uid), orderBy("start", "desc"));
+// List bookings for a single program (Admin view)
+export async function listBookingsByProgram(programId) {
+  const q = query(
+    bookingsCol,
+    where("programId", "==", String(programId)),
+    orderBy("start", "desc")
+  );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-// Admin: list all bookings (optionally filter by programId)
-export async function listAllBookings({ programId } = {}) {
-  let q = query(col, orderBy("start", "desc"));
-  if (programId) {
-    q = query(col, where("programId", "==", programId), orderBy("start", "desc"));
-  }
+// (Optional) List all bookings (Admin dashboard)
+export async function listAllBookings() {
+  const q = query(bookingsCol, orderBy("start", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+// (Optional) Cancel a booking by id (owner/admin)
 export async function cancelBooking(id) {
-  await deleteDoc(doc(db, "bookings", id));
+  await updateDoc(doc(db, "bookings", id), {
+    status: "cancelled",
+    updatedAt: serverTimestamp(),
+  });
 }

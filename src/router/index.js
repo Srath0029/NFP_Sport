@@ -1,22 +1,25 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useAuth } from "../composables/auth";
 
-// existing views
+// core views
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
 import RegisterView from "../views/RegisterView.vue";
 import AboutView from "../views/AboutView.vue";
 import ContactView from "../views/ContactView.vue";
-import AdminView from "../views/AdminView.vue";
 import ProfileView from "../views/ProfileView.vue";
+import AdminView from "../views/AdminView.vue";
 
-
-// 🔹 NEW (D.2 and D.3 pages)
-import AdminEmailView from "../views/AdminEmailView.vue";     // create this view
-import AdminTablesView from "../views/AdminTablesView.vue";   // create this view
+// admin helpers
+import AdminEmailView from "../views/AdminEmailView.vue";
+import AdminTablesView from "../views/AdminTablesView.vue";
 import AdminUsersView from "../views/AdminUsersView.vue";
 
-
-import { useAuth } from "../composables/auth";
+// lazy views
+const ProgramsMapView   = () => import("../views/ProgramsMapView.vue");
+const BookingsView      = () => import("../views/BookingsView.vue");
+const MyBookingsView    = () => import("../views/MyBookingsView.vue");
+const AdminBookingsView = () => import("../views/AdminBookingsView.vue");
 
 const routes = [
   { path: "/", name: "Home", component: HomeView },
@@ -24,19 +27,23 @@ const routes = [
   { path: "/register", name: "Register", component: RegisterView },
   { path: "/about", name: "About", component: AboutView },
   { path: "/contact", name: "Contact", component: ContactView },
-  { path: "/map", name: "ProgramsMap", component: () => import("../views/ProgramsMapView.vue") },
-  { path: "/bookings", name: "Bookings", component: () => import("../views/BookingsView.vue") },
-  { path: "/bookings/mine", name: "MyBookings", component: () => import("../views/MyBookingsView.vue") },
-  { path: "/admin/bookings", name: "AdminBookings", component: () => import("../views/AdminBookingsView.vue") },
 
+  { path: "/map", name: "ProgramsMap", component: ProgramsMapView },
+
+  // bookings (members)
+  { path: "/bookings", name: "Bookings", component: BookingsView, meta: { requiresAuth: true } },
+  { path: "/bookings/mine", name: "MyBookings", component: MyBookingsView, meta: { requiresAuth: true } },
+
+  // admin bookings view
+  { path: "/admin/bookings", name: "AdminBookings", component: AdminBookingsView, meta: { requiresAuth: true, roles: ["admin"] } },
+
+  // profile
   { path: "/profile", name: "Profile", component: ProfileView, meta: { requiresAuth: true } },
 
-  // existing admin
+  // admin dashboard + tools
   { path: "/admin", name: "Admin", component: AdminView, meta: { requiresAuth: true, roles: ["admin"] } },
-
-  // 🔹 NEW routes for rubric items
-  { path: "/admin/email", name: "AdminEmail", component: AdminEmailView, meta: { requiresAuth: true, roles: ["admin"] } },    // D.2
-  { path: "/admin/tables", name: "AdminTables", component: AdminTablesView, meta: { requiresAuth: true, roles: ["admin"] } }, // D.3
+  { path: "/admin/email", name: "AdminEmail", component: AdminEmailView, meta: { requiresAuth: true, roles: ["admin"] } },
+  { path: "/admin/tables", name: "AdminTables", component: AdminTablesView, meta: { requiresAuth: true, roles: ["admin"] } },
   { path: "/admin/users", name: "AdminUsers", component: AdminUsersView, meta: { requiresAuth: true, roles: ["admin"] } },
 ];
 
@@ -48,17 +55,17 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const { currentUser } = useAuth();
-  const user = currentUser.value; // expect shape like { uid, email, role?, ... }
+  const user = currentUser.value;
 
-  // require auth
+  // must be signed in?
   if (to.meta?.requiresAuth && !user) {
     return next({ name: "Login", query: { redirect: to.fullPath } });
   }
 
-  // role check (only if a role is actually present)
+  // role-gated?
   if (to.meta?.roles && user) {
-    const userRole = user.role; // your app sets this from Firestore users/{uid}.role
-    if (!userRole || !to.meta.roles.includes(userRole)) {
+    const role = user.role;
+    if (!role || !to.meta.roles.includes(role)) {
       return next({ name: "Home" });
     }
   }

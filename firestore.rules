@@ -1,9 +1,8 @@
-// firestore.rules — Part C + D + E + F (final)
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --------- Helpers ---------
+    // ---------- Helpers ----------
     function isSignedIn() {
       return request.auth != null;
     }
@@ -14,69 +13,62 @@ service cloud.firestore {
       return isSignedIn() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
-    // Small utilities
     function hasOnlyKeys(allowed) {
       return request.resource.data.keys().hasOnly(allowed);
     }
     function hasAllKeys(required) {
       return request.resource.data.keys().hasAll(required);
     }
+    // bookings written by CF; users can read and delete their own; admins full control
+  match /bookings/{bookingId} {
+  allow read: if request.auth != null;
+  allow create: if false;            // only CF
+  allow delete: if request.auth != null
+               && (resource.data.uid == request.auth.uid || isAdmin());
+  allow update: if false;            // or let admin update if you want
+}
 
-    // ===========================
-    //  USERS (profiles)  (C)
-    // ===========================
+    // ========== USERS ==========
     match /users/{userId} {
-      // READ: owner or admin directory
       allow read: if isOwner(userId) || isAdmin();
-
-      // WRITE: only the owner (admins do not edit profile directly)
       allow create, update, delete: if isOwner(userId) && usersSchemaOK();
 
-      // Minimal schema enforcement
       function usersSchemaOK() {
         return (
-          // Allowed keys only (extend list if you add fields)
           hasOnlyKeys([
             'email','username','firstName','lastName','age','location','gender',
             'reason','role','createdAt','updatedAt','provider'
-          ]) || true  // allow partial updates
+          ]) || true
         )
-        &&
-        (!('email' in request.resource.data)     || request.resource.data.email is string)
-        && (!('username' in request.resource.data) || request.resource.data.username is string)
-        && (!('firstName' in request.resource.data)|| request.resource.data.firstName is string)
-        && (!('lastName' in request.resource.data) || request.resource.data.lastName is string)
-        && (!('age' in request.resource.data)      || request.resource.data.age is int)
-        && (!('location' in request.resource.data) || request.resource.data.location is string)
-        && (!('gender' in request.resource.data)   || request.resource.data.gender is string)
-        && (!('reason' in request.resource.data)   || request.resource.data.reason is string)
-        && (!('role' in request.resource.data)     || request.resource.data.role is string)
-        && (!('provider' in request.resource.data) || request.resource.data.provider is string);
+        && (!('email' in request.resource.data)     || request.resource.data.email is string)
+        && (!('username' in request.resource.data)  || request.resource.data.username is string)
+        && (!('firstName' in request.resource.data) || request.resource.data.firstName is string)
+        && (!('lastName' in request.resource.data)  || request.resource.data.lastName is string)
+        && (!('age' in request.resource.data)       || request.resource.data.age is int)
+        && (!('location' in request.resource.data)  || request.resource.data.location is string)
+        && (!('gender' in request.resource.data)    || request.resource.data.gender is string)
+        && (!('reason' in request.resource.data)    || request.resource.data.reason is string)
+        && (!('role' in request.resource.data)      || request.resource.data.role is string)
+        && (!('provider' in request.resource.data)  || request.resource.data.provider is string);
       }
     }
 
-    // ==================================
-    //  PROGRAMS catalog  (D.3 tables)
-    // ==================================
-    // Public can read programs; only admins manage them.
+    // ========== PROGRAMS ==========
     match /programs/{programId} {
       allow read: if true;
       allow create, update, delete: if isAdmin() && programsSchemaOK();
 
       function programsSchemaOK() {
-        return hasAllKeys(['title','type','days','address']) // core fields must exist
-          && (
-            hasOnlyKeys([
+        return hasAllKeys(['title','type','days','address'])
+          && (hasOnlyKeys([
               'title','type','days','address','suburb','lat','lng',
               'price','capacity','description','createdAt','updatedAt','active'
-            ]) || true // allow partial updates
-          )
+            ]) || true)
           && (request.resource.data.title is string)
           && (request.resource.data.type is string)
           && (request.resource.data.days is list)
           && (request.resource.data.address is string)
           && (!('suburb' in request.resource.data)    || request.resource.data.suburb is string)
-          // Firestore uses int/float. Accept either for coordinates/price.
           && (!('lat' in request.resource.data)       || request.resource.data.lat is float || request.resource.data.lat is int)
           && (!('lng' in request.resource.data)       || request.resource.data.lng is float || request.resource.data.lng is int)
           && (!('price' in request.resource.data)     || request.resource.data.price is float || request.resource.data.price is int)
@@ -85,10 +77,7 @@ service cloud.firestore {
       }
     }
 
-    // ==================================
-    //  ENROLMENTS  (D.3 tables / future F)
-    // ==================================
-    // Users manage their own enrolments; admins can read for oversight.
+    // ========== ENROLMENTS ==========
     match /enrolments/{enrolId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow create: if isSignedIn()
@@ -97,49 +86,41 @@ service cloud.firestore {
       allow update, delete: if isSignedIn()
         && resource.data.uid == request.auth.uid
         && enrolSchemaOK();
-      // If you want admins to update enrolments too, uncomment:
-      // allow update: if isAdmin() && enrolSchemaOK();
 
       function enrolSchemaOK() {
         return (hasOnlyKeys(['uid','programId','status','createdAt','notes']) || true)
           && (request.resource.data.uid is string)
           && (request.resource.data.programId is string)
-          && (request.resource.data.status is string);
+          && (!('status' in request.resource.data) || request.resource.data.status is string);
       }
     }
 
-    // ==================================
-    //  BOOKINGS (FullCalendar)  (F)
-    // ==================================
-
-      // Bookings are server-written only (via Cloud Function).
-  match /bookings/{id} {
-    allow read: if request.auth != null;
-    allow write: if false;
-  }
-}
-    // Owner CRUD own bookings; admins can read/manage all.
+    // ========== BOOKINGS ==========
+    // We create bookings via Cloud Function (Admin SDK bypasses rules).
     match /bookings/{bookingId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
-      allow create: if isSignedIn()
-        && request.resource.data.uid == request.auth.uid
-        && bookingSchemaOK();
-      allow update, delete: if (isSignedIn() && resource.data.uid == request.auth.uid || isAdmin())
-        && bookingSchemaOK();
+      // Anyone signed-in can read their own; admins can read all.
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
 
-      function bookingSchemaOK() {
-        return (hasOnlyKeys(['uid','programId','dateStart','dateEnd','status','createdAt']) || true)
-          && (request.resource.data.uid is string)
-          && (request.resource.data.programId is string)
-          && (request.resource.data.dateStart is string) // ISO string if sent from client
-          && (request.resource.data.dateEnd is string)
-          && (request.resource.data.status is string);
-      }
+      // Disallow direct client creates; CF writes them.
+      allow create: if false;
+
+      // Allow owner or admin to update/delete (e.g., cancel).
+      allow update, delete: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      // If you ever want to accept client creates instead, flip create=true and enforce:
+      // && bookingSchemaOK()
     }
 
-    // ==================================
-    //  RATINGS: SCORES (C.3 legacy)
-    // ==================================
+    // Optional schema (used only if you ever enable client-side creates)
+    function bookingSchemaOK() {
+      return (hasOnlyKeys(['uid','programId','start','end','status','createdAt']) || true)
+        && (request.resource.data.uid is string)
+        && (request.resource.data.programId is string)
+        && (request.resource.data.start is string)
+        && (request.resource.data.end is string)
+        && (!('status' in request.resource.data) || request.resource.data.status is string);
+    }
+
+    // ========== RATINGS (scores) ==========
     match /ratings/{itemKey}/scores/{userId} {
       allow read: if true;
       allow create, update, delete: if isOwner(userId) && isValidScore();
@@ -153,9 +134,7 @@ service cloud.firestore {
       }
     }
 
-    // ==================================
-    //  RATINGS: REVIEWS (C.3 new)
-    // ==================================
+    // ========== RATINGS (reviews) ==========
     match /ratings/{itemKey}/reviews/{userId} {
       allow read: if true;
       allow create, update, delete: if isOwner(userId) && isValidReview();
@@ -172,16 +151,13 @@ service cloud.firestore {
       }
     }
 
-    // Optional aggregate cache written by Cloud Function (E.1)
+    // Optional aggregates written by CF
     match /ratingsMeta/{itemKey} {
       allow read: if true;
-      allow write: if isAdmin(); // or restrict to CF via custom claims/App Check
+      allow write: if isAdmin();
     }
 
-    // ==================================
-    //  EMAILS QUEUE (D.2 via CF + SendGrid)
-    // ==================================
-    // If you ever queue emails in Firestore; not used by Cloudflare function.
+    // ========== EMAIL QUEUE (optional) ==========
     match /emails/{emailId} {
       allow read, write: if isAdmin() && emailSchemaOK();
 
@@ -195,17 +171,13 @@ service cloud.firestore {
       }
     }
 
-    // ==================================
-    //  ANALYTICS (written by CF)  (E.1/E/F)
-    // ==================================
+    // ========== ANALYTICS (admin writes) ==========
     match /analytics/{collection}/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // ==================================
-    //  USER GEO FAVOURITES (E.2 bonus)
-    // ==================================
+    // ========== GEO FAVS ==========
     match /geofavs/{uid}/clubs/{clubId} {
       allow read, write: if isOwner(uid) && geofavSchemaOK();
 

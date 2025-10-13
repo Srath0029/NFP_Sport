@@ -15,23 +15,31 @@
 
       <div class="collapse navbar-collapse" :class="{ show: navOpen }" id="navbarNav">
         <ul class="navbar-nav me-auto">
-          <li class="nav-item"><RouterLink class="nav-link" to="/" @click="closeAll">Home</RouterLink></li>
-          <li class="nav-item"><RouterLink class="nav-link" to="/about" @click="closeAll">About</RouterLink></li>
-          <li class="nav-item"><RouterLink class="nav-link" to="/contact" @click="closeAll">Contact</RouterLink></li>
+          <li class="nav-item">
+            <RouterLink class="nav-link" to="/" @click="closeAll">Home</RouterLink>
+          </li>
+          <li class="nav-item">
+            <RouterLink class="nav-link" to="/about" @click="closeAll">About</RouterLink>
+          </li>
+          <li class="nav-item">
+            <RouterLink class="nav-link" to="/contact" @click="closeAll">Contact</RouterLink>
+          </li>
 
           <!-- Map (E.2) -->
-          <li class="nav-item"><RouterLink class="nav-link" to="/map" @click="closeAll">Map</RouterLink></li>
+          <li class="nav-item">
+            <RouterLink class="nav-link" to="/map" @click="closeAll">Map</RouterLink>
+          </li>
 
-          <!-- ✅ NEW: Bookings link (Feature F.1) -->
+          <!-- Book (F.1) -->
           <li class="nav-item" v-if="user">
-            <RouterLink class="nav-link" to="/bookings" @click="closeAll">Bookings</RouterLink>
+            <RouterLink class="nav-link" to="/bookings" @click="closeAll">Book</RouterLink>
           </li>
 
           <li class="nav-item" v-if="user">
             <RouterLink class="nav-link" to="/profile" @click="closeAll">Profile</RouterLink>
           </li>
 
-          <!-- Admin dropdown (Vue-only, no Bootstrap JS) -->
+          <!-- Admin dropdown -->
           <li class="nav-item dropdown" v-if="isAdmin" ref="adminRef">
             <button
               class="nav-link dropdown-toggle border-0 bg-transparent"
@@ -46,6 +54,7 @@
               <li><RouterLink class="dropdown-item" to="/admin" @click="closeAll">Dashboard</RouterLink></li>
               <li><RouterLink class="dropdown-item" to="/admin/tables" @click="closeAll">Programs Table</RouterLink></li>
               <li><RouterLink class="dropdown-item" to="/admin/users" @click="closeAll">Users Table</RouterLink></li>
+              <li><RouterLink class="dropdown-item" to="/admin/bookings" @click="closeAll">Bookings</RouterLink></li>
               <li><RouterLink class="dropdown-item" to="/admin/email" @click="closeAll">Email Panel</RouterLink></li>
             </ul>
           </li>
@@ -53,8 +62,12 @@
 
         <!-- User dropdown -->
         <ul class="navbar-nav ms-auto" ref="userRef">
-          <li v-if="!user" class="nav-item"><RouterLink class="nav-link" to="/login" @click="closeAll">Login</RouterLink></li>
-          <li v-if="!user" class="nav-item"><RouterLink class="nav-link" to="/register" @click="closeAll">Register</RouterLink></li>
+          <li v-if="!user" class="nav-item">
+            <RouterLink class="nav-link" to="/login" @click="closeAll">Login</RouterLink>
+          </li>
+          <li v-if="!user" class="nav-item">
+            <RouterLink class="nav-link" to="/register" @click="closeAll">Register</RouterLink>
+          </li>
 
           <li v-else class="nav-item dropdown">
             <button
@@ -67,6 +80,11 @@
               {{ user.username }} <span class="badge bg-secondary">{{ user.role }}</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" :class="{ show: userOpen }">
+              <li>
+                <RouterLink class="dropdown-item" to="/bookings/mine" @click="closeAll">
+                  My bookings
+                </RouterLink>
+              </li>
               <li><button class="dropdown-item" @click="doLogout">Logout</button></li>
             </ul>
           </li>
@@ -100,12 +118,12 @@ function closeAll() {
   userOpen.value = false;
 }
 function toggle(which) {
-  if (which === 'admin') { adminOpen.value = !adminOpen.value; userOpen.value = false; }
-  if (which === 'user')  { userOpen.value  = !userOpen.value;  adminOpen.value = false; }
+  if (which === "admin") { adminOpen.value = !adminOpen.value; userOpen.value = false; }
+  if (which === "user")  { userOpen.value  = !userOpen.value;  adminOpen.value = false; }
 }
 function close(which) {
-  if (which === 'admin') adminOpen.value = false;
-  if (which === 'user')  userOpen.value = false;
+  if (which === "admin") adminOpen.value = false;
+  if (which === "user")  userOpen.value = false;
 }
 function doLogout() {
   closeAll();
@@ -120,11 +138,11 @@ function onDocClick(e) {
 }
 let unreg;
 onMounted(() => {
-  document.addEventListener('click', onDocClick);
+  document.addEventListener("click", onDocClick);
   unreg = router.afterEach(() => closeAll());
 });
 onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocClick);
+  document.removeEventListener("click", onDocClick);
   unreg && unreg();
 });
 </script>

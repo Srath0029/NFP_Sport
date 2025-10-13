@@ -9,40 +9,39 @@
     </div>
 
     <div class="row g-2 mb-3">
-      <div class="col-12 col-md-4">
-        <input v-model="q" class="form-control" placeholder="Search (user/program)">
+      <div class="col-md-4">
+        <input v-model="q" class="form-control" placeholder="Search (user email/uid, program title)">
       </div>
-      <div class="col-6 col-md-3">
-        <select v-model="programFilter" class="form-select">
+      <div class="col-md-4">
+        <select v-model="selectedProgram" class="form-select">
           <option value="">All programs</option>
           <option v-for="p in progs" :key="p.id" :value="p.id">{{ p.title }}</option>
         </select>
       </div>
+      <div class="col-md-4 text-end">
+        <button class="btn btn-sm btn-outline-success" @click="exportCsv" :disabled="rows.length===0">Export CSV</button>
+      </div>
     </div>
 
-    <div v-if="loading" class="alert alert-info py-2">Loading…</div>
-    <div v-if="error" class="alert alert-danger py-2">{{ error }}</div>
+    <div class="alert alert-info py-2" v-if="loading">Loading…</div>
+    <div class="alert alert-danger py-2" v-if="error">{{ error }}</div>
 
     <div class="table-responsive" v-if="!loading">
       <table class="table table-striped align-middle">
         <thead>
           <tr>
-            <th>Program</th>
-            <th>User</th>
-            <th>Start</th>
-            <th>End</th>
-            <th class="text-end">Actions</th>
+            <th>Program</th><th>User</th><th>Start</th><th>End</th><th class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="b in filtered" :key="b.id">
-            <td>{{ programName(b.programId) }}</td>
-            <td><code>{{ b.uid }}</code></td>
+            <td>{{ title(b.programId) }}</td>
+            <td><small>{{ b.uid }}</small></td>
             <td>{{ fmt(b.start) }}</td>
             <td>{{ fmt(b.end) }}</td>
             <td class="text-end">
-              <button class="btn btn-sm btn-outline-danger" @click="onCancel(b)" :disabled="busyId===b.id">
-                {{ busyId===b.id ? 'Deleting…' : 'Delete' }}
+              <button class="btn btn-sm btn-outline-danger" @click="remove(b)" :disabled="busyId===b.id">
+                Delete
               </button>
             </td>
           </tr>
@@ -56,49 +55,50 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { RouterLink } from "vue-router";
-import { listAllBookings, cancelBooking } from "../services/bookingsService";
 import { listPrograms } from "../services/programsService";
+import { listAllBookings, listBookingsByProgram, cancelBooking } from "../services/bookingsService";
 
-const bookings = ref([]);
-const progs = ref([]);
 const loading = ref(true);
 const error = ref("");
-const busyId = ref("");
+const rows = ref([]);
+const progs = ref([]);
+const selectedProgram = ref("");
 const q = ref("");
-const programFilter = ref("");
+const busyId = ref("");
 
 function fmt(iso) { try { return new Date(iso).toLocaleString(); } catch { return iso; } }
-function programName(id) { return progs.value.find(p => p.id === id)?.title || id; }
+function title(id) { const p = progs.value.find(x => x.id === id); return p ? p.title : "(unknown)"; }
 
 const filtered = computed(() => {
-  const term = q.value.toLowerCase();
-  return bookings.value.filter(b => {
-    if (programFilter.value && b.programId !== programFilter.value) return false;
-    const pName = programName(b.programId).toLowerCase();
-    return !term || pName.includes(term) || String(b.uid).toLowerCase().includes(term);
+  const term = q.value.trim().toLowerCase();
+  return rows.value.filter(r => {
+    const hay = `${title(r.programId)} ${r.uid}`.toLowerCase();
+    return (!term || hay.includes(term)) &&
+           (!selectedProgram.value || r.programId === selectedProgram.value);
   });
 });
 
-async function loadAll() {
+async function load() {
   loading.value = true; error.value = "";
   try {
     progs.value = await listPrograms();
-    bookings.value = await listAllBookings();
+    // default to all bookings
+    rows.value = await listAllBookings();
   } catch (e) {
-    error.value = e?.message || "Failed to load.";
+    error.value = e?.message || "Failed to load bookings.";
   } finally {
     loading.value = false;
   }
 }
 
-async function onCancel(b) {
+async function remove(b) {
   if (!confirm("Delete this booking?")) return;
   try {
     busyId.value = b.id;
     await cancelBooking(b.id);
-    bookings.value = bookings.value.filter(x => x.id !== b.id);
+    rows.value = rows.value.filter(x => x.id !== b.id);
   } catch (e) {
     alert(e?.message || "Failed to delete.");
   } finally {
@@ -106,5 +106,18 @@ async function onCancel(b) {
   }
 }
 
-onMounted(loadAll);
+function exportCsv() {
+  const headers = ["program","uid","start","end"];
+  const lines = [headers.join(",")];
+  filtered.value.forEach(b => {
+    lines.push([JSON.stringify(title(b.programId)), b.uid, b.start, b.end].join(","));
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "bookings.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+onMounted(load);
 </script>
