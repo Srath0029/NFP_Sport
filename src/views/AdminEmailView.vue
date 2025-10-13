@@ -1,34 +1,36 @@
 <template>
-  <div class="container mt-4">
+  <div class="container mt-4" id="main">
     <h1>Admin Email Panel</h1>
     <p class="lead">Use this page to send emails with attachments via SendGrid (Cloudflare Pages Function).</p>
 
     <form class="mt-4" @submit.prevent="onSend">
       <div class="mb-3">
-        <label class="form-label">Recipient Email</label>
-        <input v-model="to" type="email" class="form-control" required />
+        <label class="form-label" for="to">Recipient Email</label>
+        <input id="to" v-model="to" type="email" class="form-control" required />
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Subject</label>
-        <input v-model="subject" type="text" class="form-control" required />
+        <label class="form-label" for="subject">Subject</label>
+        <input id="subject" v-model="subject" type="text" class="form-control" required />
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Message</label>
-        <textarea v-model="message" class="form-control" rows="5" required></textarea>
+        <label class="form-label" for="msg">Message</label>
+        <textarea id="msg" v-model="message" class="form-control" rows="5" required></textarea>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Attachment (optional)</label>
-        <input type="file" class="form-control" @change="onFileChange" />
+        <label class="form-label" for="att">Attachment (optional)</label>
+        <input id="att" type="file" class="form-control" @change="onFileChange" />
       </div>
 
       <button class="btn btn-primary" type="submit" :disabled="loading">
         {{ loading ? "Sending..." : "Send Email" }}
       </button>
 
-      <div v-if="status" class="alert alert-info mt-3">{{ status }}</div>
+      <div v-if="status" class="alert alert-info mt-3" role="status" aria-live="polite">
+        {{ status }}
+      </div>
     </form>
   </div>
 </template>
@@ -44,13 +46,9 @@ const file = ref(null);
 const status = ref("");
 const loading = ref(false);
 
-// keep this helper in THIS block so it's defined when onSend runs
 function textToHtml(txt) {
   const s = String(txt ?? "");
-  const escaped = s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  const escaped = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return escaped.replace(/\r?\n/g, "<br>");
 }
 

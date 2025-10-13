@@ -8,3 +8,18 @@
 
 /* Keep navbar clickable above any overlapping content */
 .navbar { position: sticky; top: 0; z-index: 2000; }
+
+/* Skip-link helper (only shows when focused) */
+.visually-hidden-focusable:not(:focus):not(:focus-within) {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
+
+/* Keep strong visible focus ring for keyboard users */
+:focus-visible {
+  outline: 3px solid #ffc107;
+  outline-offset: 2px;
+}

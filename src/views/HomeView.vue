@@ -1,8 +1,10 @@
 <template>
-  <div class="container py-5">
+  <main id="main" class="container py-5">
     <div class="row align-items-center g-4">
       <div class="col-lg-6">
-        <h1 class="display-6 fw-bold">Move more. Feel better. Connect through community sport.</h1>
+        <h1 class="display-6 fw-bold">
+          Move more. Feel better. Connect through community sport.
+        </h1>
         <p class="lead">
           We help young adults in Melbourne join affordable, inclusive sport programs that boost physical
           and mental wellbeing.
@@ -15,15 +17,14 @@
 
       <div class="col-lg-6">
         <!-- Ratings + reviews -->
-        <ReviewWidget itemKey="overall_website_experience" title="Rate & review the website" />
+        <section aria-label="Ratings and reviews">
+          <ReviewWidget itemKey="overall_website_experience" title="Rate & review the website" />
+        </section>
       </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup>
-
-
-
 import ReviewWidget from "../components/ReviewWidget.vue";
 </script>

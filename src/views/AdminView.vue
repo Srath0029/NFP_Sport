@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-4">
+  <div class="container mt-4" id="main">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3 class="mb-0">Admin • Dashboard & User Directory</h3>
       <div class="d-flex gap-2">
@@ -61,7 +61,7 @@
       </div>
     </div>
 
-    <!-- User Directory (kept from your original) -->
+    <!-- User Directory -->
     <div class="card shadow-sm">
       <div class="card-header bg-dark text-white">
         <strong>User Directory</strong>
@@ -121,59 +121,41 @@ function formatDate(iso) {
 
 onMounted(async () => {
   try {
-    // Load users
     const userSnap = await getDocs(collection(db, "users"));
     users.value = userSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     stats.value.users = users.value.length;
 
-    // Load programs
     const progSnap = await getDocs(collection(db, "programs"));
     programs.value = progSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     stats.value.programs = programs.value.length;
 
-    // Optional: derive reviews + avg rating if you use ratings/{itemKey}/reviews/{uid}
-    // If you don't have nested reviews yet, these stay 0 gracefully.
     let allReviews = [];
     try {
-      // If you store an itemKey on each program, fetch nested reviews
       for (const p of programs.value) {
         if (p.itemKey) {
           const subSnap = await getDocs(collection(db, `ratings/${p.itemKey}/reviews`));
           allReviews = allReviews.concat(subSnap.docs.map(r => r.data()));
         }
       }
-    } catch (e) {
-      // keep silent; not all setups have nested reviews yet
-      // console.debug("reviews fetch skipped:", e.message);
-    }
+    } catch {}
     stats.value.reviews = allReviews.length || 0;
     stats.value.avgRating =
       allReviews.length > 0
         ? allReviews.reduce((sum, r) => sum + (Number(r.score) || 0), 0) / allReviews.length
         : 0;
 
-    // Chart.js: Program capacities
     const ctx = document.getElementById("capacityChart");
     if (ctx && programs.value.length) {
       new Chart(ctx, {
         type: "bar",
         data: {
           labels: programs.value.map(p => p.title),
-          datasets: [
-            {
-              label: "Capacity",
-              data: programs.value.map(p => Number(p.capacity) || 0),
-              // Chart.js will auto-pick colors; keeping it simple for accessibility
-            },
-          ],
+          datasets: [{ label: "Capacity", data: programs.value.map(p => Number(p.capacity) || 0) }],
         },
         options: {
           responsive: true,
           maintainAspectRatio: true,
-          plugins: {
-            legend: { display: true },
-            tooltip: { mode: "index", intersect: false },
-          },
+          plugins: { legend: { display: true }, tooltip: { mode: "index", intersect: false } },
           scales: {
             y: { beginAtZero: true, title: { display: true, text: "Capacity" } },
             x: { title: { display: true, text: "Program" } },
