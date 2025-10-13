@@ -111,6 +111,13 @@ service cloud.firestore {
     // ==================================
     //  BOOKINGS (FullCalendar)  (F)
     // ==================================
+
+      // Bookings are server-written only (via Cloud Function).
+  match /bookings/{id} {
+    allow read: if request.auth != null;
+    allow write: if false;
+  }
+}
     // Owner CRUD own bookings; admins can read/manage all.
     match /bookings/{bookingId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);

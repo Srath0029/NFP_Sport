@@ -21,7 +21,7 @@ import Form from "../components/Form.vue";
 const router = useRouter();
 const { register } = useAuth();
 
-const existingUsernames = ref<string[]>([]);
+const existingUsernames = ref([]);
 const okMsg = ref("");
 const errMsg = ref("");
 
@@ -33,19 +33,20 @@ onMounted(async () => {
       .map(d => (d.data()?.username || "").toString().toLowerCase())
       .filter(Boolean);
   } catch (e) {
-    // keep quiet; validation will still run server-side via Firestore rules if you have them
     console.warn("Username preload failed:", e);
   }
 });
 
-async function handleRegister(formData: {
-  firstName: string; lastName: string; username: string; email: string; password: string;
-  age: number|null; location: string; gender: string; reason: string; createdAt: string;
-}) {
-  okMsg.value = ""; errMsg.value = "";
+async function handleRegister(formData) {
+  okMsg.value = "";
+  errMsg.value = "";
   try {
     // 1) Create Auth user
-    const cred = await register({ email: formData.email, password: formData.password, username: formData.username });
+    const cred = await register({
+      email: formData.email,
+      password: formData.password,
+      username: formData.username,
+    });
 
     // 2) Write user profile doc
     await setDoc(doc(db, "users", cred.user.uid), {
@@ -64,7 +65,7 @@ async function handleRegister(formData: {
 
     okMsg.value = "Account created! Redirecting to your profile…";
     setTimeout(() => router.push({ name: "Profile" }), 800);
-  } catch (e:any) {
+  } catch (e) {
     console.error(e);
     errMsg.value = e?.message || "Registration failed.";
   }

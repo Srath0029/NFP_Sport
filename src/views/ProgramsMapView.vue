@@ -9,6 +9,7 @@
     <div v-else>
       <ProgramsMap :programs="programs" />
     </div>
+
     <div v-if="error" class="alert alert-danger mt-3">{{ error }}</div>
   </div>
 </template>
@@ -24,7 +25,18 @@ const error = ref("");
 
 onMounted(async () => {
   try {
-    programs.value = await listPrograms(); // expects docs with lat/lng
+    const raw = await listPrograms();
+    // 👇 Force lat/lng to numbers to be safe + filter junk
+    programs.value = raw
+      .map(p => ({
+        ...p,
+        lat: Number(p.lat),
+        lng: Number(p.lng),
+      }))
+      .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng) && p.active !== false);
+
+    console.log("[MapView] received docs:", raw.length,
+                "valid features (numeric lat/lng):", programs.value.length);
   } catch (e) {
     console.error(e);
     error.value = e?.message || "Failed to load programs.";

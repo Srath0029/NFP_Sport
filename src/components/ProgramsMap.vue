@@ -1,188 +1,191 @@
 <template>
-  <section aria-label="Programs map and routing">
-    <div class="d-flex gap-2 mb-2 align-items-center">
-      <input
-        v-model="query"
-        class="form-control"
-        placeholder="Search a place (e.g., Footscray Park)"
-        @keyup.enter="doSearch"
-        aria-label="Search places"
-      />
-      <button class="btn btn-primary" @click="doSearch">Search</button>
-      <button class="btn btn-outline-secondary" @click="routeToSelected" :disabled="!selected">
-        Route to selected
-      </button>
-      <span v-if="status" class="text-muted small ms-2" role="status" aria-live="polite">{{ status }}</span>
+  <div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <strong>Programs Map</strong>
+      <div class="d-flex gap-2 align-items-center">
+        <small class="text-muted me-2">Points: {{ featureCount }}</small>
+        <button class="btn btn-sm btn-outline-primary" @click="locateMe" :disabled="geoBusy">
+          {{ geoBusy ? 'Locating…' : 'Find near me' }}
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" @click="fitAll" :disabled="!hasAnyFeature">
+          Fit all
+        </button>
+      </div>
     </div>
-
-    <div
-      ref="mapRef"
-      style="height: 440px; border-radius: 12px; overflow: hidden;"
-      aria-label="Interactive map"
-      role="region"
-    ></div>
-
-    <div class="mt-2">
-      <small class="text-muted">Tip: click a program marker to select it, then press “Route to selected”.</small>
+    <div class="card-body p-0">
+      <div ref="mapEl" class="map-container" role="region" aria-label="Programs map"></div>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import mapboxgl from "mapbox-gl";
+import MapboxGeocoder from "@mapbox/mapbox-gl-geocoder";
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 
 const props = defineProps({
-  programs: { type: Array, default: () => [] } // [{id,title,suburb,lat,lng}]
+  // expects [{ id,title,lat,lng,address,suburb,capacity,active }]
+  programs: { type: Array, default: () => [] },
 });
 
-const mapRef = ref(null);
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "";
+
+const mapEl = ref(null);
 let map;
-let programMarkers = [];
-const selected = ref(null);
-const query = ref("");
-const status = ref("");
+let resizeObs;
 
-const token = import.meta.env.VITE_MAPBOX_TOKEN;
-mapboxgl.accessToken = token;
+// --- GeoJSON state ----------------------------------------------------
+const fc = ref({ type: "FeatureCollection", features: [] });
+const featureCount = computed(() => fc.value.features?.length || 0);
+const hasAnyFeature = computed(() => featureCount.value > 0);
 
-function setStatus(msg, ms = 2500) {
-  status.value = msg;
-  if (ms) setTimeout(() => (status.value = ""), ms);
+function toFeature(p) {
+  const { lat, lng } = p;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (p.active === false) return null;
+  return {
+    type: "Feature",
+    geometry: { type: "Point", coordinates: [lng, lat] },
+    properties: {
+      id: p.id || "",
+      title: String(p.title || "Program"),
+      address: [p.address, p.suburb].filter(Boolean).join(", "),
+      lat, lng,
+    },
+  };
 }
 
-function clearMarkers() {
-  programMarkers.forEach(m => m.remove());
-  programMarkers = [];
+function rebuildFC() {
+  const feats = (props.programs || []).map(toFeature).filter(Boolean);
+  fc.value = { type: "FeatureCollection", features: feats };
+  // Push to map if the source exists
+  if (map && map.getSource("programs")) {
+    map.getSource("programs").setData(fc.value);
+  }
+  console.log("[ProgramsMap] features now:", feats.length);
 }
 
-function addProgramMarkers() {
-  clearMarkers();
-  props.programs
-    .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))
-    .forEach(p => {
-      const el = document.createElement("div");
-      el.className = "marker";
-      el.style.width = "14px";
-      el.style.height = "14px";
-      el.style.borderRadius = "50%";
-      el.style.background = "#0d6efd";
+function fitAll() {
+  if (!map || !hasAnyFeature.value) return;
+  const b = new mapboxgl.LngLatBounds();
+  fc.value.features.forEach(f => b.extend(f.geometry.coordinates));
+  map.fitBounds(b, { padding: 50, duration: 400 });
+}
 
-      const mk = new mapboxgl.Marker(el)
-        .setLngLat([p.lng, p.lat])
-        .setPopup(
-          new mapboxgl.Popup({ offset: 24 }).setHTML(
-            `<strong>${escapeHtml(p.title || "Program")}</strong><br>${escapeHtml(p.suburb || "")}`
-          )
-        )
+function showPopup(f) {
+  if (!f) return;
+  const { title, address, lat, lng } = f.properties || {};
+  const gq = encodeURIComponent(`${lat},${lng}`);
+  const html = `
+    <div style="min-width:220px">
+      <strong>${title || "Program"}</strong>
+      <div class="text-muted small">${address || ""}</div>
+      <div class="mt-2 d-flex gap-1">
+        <a class="btn btn-sm btn-primary" target="_blank" rel="noopener"
+           href="https://www.google.com/maps/dir/?api=1&destination=${gq}&travelmode=walking">Google</a>
+        <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
+           href="https://maps.apple.com/?daddr=${gq}&dirflg=w">Apple</a>
+      </div>
+    </div>`;
+  new mapboxgl.Popup({ offset: 16 })
+    .setLngLat([lng, lat])
+    .setHTML(html)
+    .addTo(map);
+}
+
+const geoBusy = ref(false);
+function locateMe() {
+  if (!navigator.geolocation || !map) return;
+  geoBusy.value = true;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      map.flyTo({ center: [longitude, latitude], zoom: 13, essential: true });
+      new mapboxgl.Marker({ color: "#0d6efd" })
+        .setLngLat([longitude, latitude])
+        .setPopup(new mapboxgl.Popup({ offset: 14 }).setText("You are here"))
         .addTo(map);
-
-      el.tabIndex = 0; // keyboard-focusable
-      el.setAttribute("role", "button");
-      el.setAttribute("aria-label", `Select ${p.title || "program"} for routing`);
-      el.addEventListener("click", () => (selected.value = p));
-      el.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selected.value = p; }
-      });
-
-      programMarkers.push(mk);
-    });
+      geoBusy.value = false;
+    },
+    () => (geoBusy.value = false),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 }
 
-async function doSearch() {
-  if (!query.value?.trim()) return;
-  try {
-    setStatus("Searching…", 0);
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-      query.value
-    )}.json?proximity=ip&access_token=${token}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const feat = data.features?.[0];
-    if (feat) {
-      map.flyTo({ center: feat.center, zoom: 13 });
-      setStatus(`Moved to ${feat.text || "result"}`);
-    } else {
-      setStatus("No results");
-    }
-  } catch (e) {
-    console.error(e);
-    setStatus("Search failed");
-  }
-}
+// --- Map lifecycle ----------------------------------------------------
+onMounted(async () => {
+  await nextTick();
 
-async function routeToSelected() {
-  if (!selected.value) return;
-  if (!navigator.geolocation) {
-    setStatus("Geolocation not supported in this browser");
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    try {
-      setStatus("Calculating route…", 0);
-      const start = [pos.coords.longitude, pos.coords.latitude];
-      const end = [selected.value.lng, selected.value.lat];
-      const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${start.join(",")};${end.join(
-        ","
-      )}?geometries=geojson&access_token=${token}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const line = data.routes?.[0]?.geometry;
-      if (!line) {
-        setStatus("No route found");
-        return;
-      }
-      // Remove previous route if present
-      if (map.getLayer("route")) {
-        map.removeLayer("route");
-        map.removeSource("route");
-      }
-      map.addSource("route", { type: "geojson", data: { type: "Feature", geometry: line } });
-      map.addLayer({
-        id: "route",
-        type: "line",
-        source: "route",
-        paint: { "line-width": 5 }
-      });
-
-      // fit bounds
-      map.fitBounds([start, end], { padding: 60 });
-      setStatus("Route displayed");
-    } catch (e) {
-      console.error(e);
-      setStatus("Routing failed");
-    }
-  }, () => setStatus("Location permission denied"));
-}
-
-onMounted(() => {
   map = new mapboxgl.Map({
-    container: mapRef.value,
+    container: mapEl.value,
     style: "mapbox://styles/mapbox/streets-v12",
-    center: [144.9631, -37.8136], // Melbourne
+    center: [144.9631, -37.8136],
     zoom: 10,
-    accessToken: token
+    attributionControl: true,
   });
-  map.on("load", addProgramMarkers);
+
+  map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+
+  const geocoder = new MapboxGeocoder({
+    accessToken: mapboxgl.accessToken,
+    mapboxgl,
+    marker: false,
+    flyTo: { zoom: 14 },
+    placeholder: "Search places…",
+  });
+  map.addControl(geocoder, "top-left");
+  geocoder.on("result", (e) => {
+    const c = e.result?.center;
+    if (Array.isArray(c)) map.flyTo({ center: c, zoom: 14 });
+  });
+
+  map.on("load", () => {
+    // Add source + layer
+    map.addSource("programs", { type: "geojson", data: fc.value });
+    map.addLayer({
+      id: "programs-circles",
+      type: "circle",
+      source: "programs",
+      paint: {
+        "circle-radius": 7,
+        "circle-color": "#dc3545",
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2,
+      },
+    });
+
+    map.on("click", "programs-circles", (e) => showPopup(e.features?.[0]));
+    map.on("mouseenter", "programs-circles", () => (map.getCanvas().style.cursor = "pointer"));
+    map.on("mouseleave", "programs-circles", () => (map.getCanvas().style.cursor = ""));
+
+    rebuildFC();     // push initial data
+    if (hasAnyFeature.value) fitAll();
+  });
+
+  // keep map crisp when container size changes
+  if (window.ResizeObserver) {
+    resizeObs = new ResizeObserver(() => map && map.resize());
+    resizeObs.observe(mapEl.value);
+  }
 });
 
 onBeforeUnmount(() => {
-  clearMarkers();
-  if (map) map.remove();
+  if (resizeObs && mapEl.value) resizeObs.unobserve(mapEl.value);
+  map?.remove();
 });
 
-watch(() => props.programs, () => {
-  if (map?.loaded()) addProgramMarkers();
-}, { deep: true });
-
-/* util */
-function escapeHtml(s) {
-  return String(s || "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+// Rebuild when programs prop changes
+watch(
+  () => props.programs,
+  () => {
+    rebuildFC();
+    // auto-fit when new data flows in
+    if (map?.loaded() && hasAnyFeature.value) fitAll();
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>
-.marker:focus {
-  outline: 3px solid #ffc107; /* visible focus ring for a11y */
-}
+.map-container { height: 520px; width: 100%; }
 </style>
