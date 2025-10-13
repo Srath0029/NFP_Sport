@@ -18,6 +18,10 @@
           <li class="nav-item"><RouterLink class="nav-link" to="/" @click="closeAll">Home</RouterLink></li>
           <li class="nav-item"><RouterLink class="nav-link" to="/about" @click="closeAll">About</RouterLink></li>
           <li class="nav-item"><RouterLink class="nav-link" to="/contact" @click="closeAll">Contact</RouterLink></li>
+
+          <!-- 🔹 NEW: Map link for E.2 -->
+          <li class="nav-item"><RouterLink class="nav-link" to="/map" @click="closeAll">Map</RouterLink></li>
+
           <li class="nav-item" v-if="user">
             <RouterLink class="nav-link" to="/profile" @click="closeAll">Profile</RouterLink>
           </li>
@@ -122,9 +126,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style>
-/* Keep navbar above content and sticky */
 .navbar { position: sticky; top: 0; z-index: 3000; }
-
-/* Show dropdown menu when "show" is set */
 .dropdown-menu.show { display: block; }
 </style>

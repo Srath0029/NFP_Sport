@@ -9,6 +9,7 @@ import ContactView from "../views/ContactView.vue";
 import AdminView from "../views/AdminView.vue";
 import ProfileView from "../views/ProfileView.vue";
 
+
 // 🔹 NEW (D.2 and D.3 pages)
 import AdminEmailView from "../views/AdminEmailView.vue";     // create this view
 import AdminTablesView from "../views/AdminTablesView.vue";   // create this view
