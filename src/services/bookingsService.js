@@ -1,17 +1,29 @@
 // src/services/bookingsService.js
-const BASE =
-  import.meta.env.VITE_FB_FUNC_BASE ||
-  "https://australia-southeast2-<YOUR-PROJECT-ID>.cloudfunctions.net";
+import { db } from "../firebase";
+import {
+  collection, query, where, orderBy, getDocs, deleteDoc, doc,
+} from "firebase/firestore";
 
-export async function createBooking({ uid, programId, start, end }) {
-  const res = await fetch(`${BASE}/createBooking`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ uid, programId, start, end }),
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${detail}`);
+// existing: export async function createBooking(payload) { ... } // via HTTPS fn
+
+const col = collection(db, "bookings");
+
+export async function listUserBookings(uid) {
+  const q = query(col, where("uid", "==", uid), orderBy("start", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// Admin: list all bookings (optionally filter by programId)
+export async function listAllBookings({ programId } = {}) {
+  let q = query(col, orderBy("start", "desc"));
+  if (programId) {
+    q = query(col, where("programId", "==", programId), orderBy("start", "desc"));
   }
-  return res.json();
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function cancelBooking(id) {
+  await deleteDoc(doc(db, "bookings", id));
 }

@@ -19,8 +19,13 @@
           <li class="nav-item"><RouterLink class="nav-link" to="/about" @click="closeAll">About</RouterLink></li>
           <li class="nav-item"><RouterLink class="nav-link" to="/contact" @click="closeAll">Contact</RouterLink></li>
 
-          <!-- 🔹 NEW: Map link for E.2 -->
+          <!-- Map (E.2) -->
           <li class="nav-item"><RouterLink class="nav-link" to="/map" @click="closeAll">Map</RouterLink></li>
+
+          <!-- ✅ NEW: Bookings link (Feature F.1) -->
+          <li class="nav-item" v-if="user">
+            <RouterLink class="nav-link" to="/bookings" @click="closeAll">Bookings</RouterLink>
+          </li>
 
           <li class="nav-item" v-if="user">
             <RouterLink class="nav-link" to="/profile" @click="closeAll">Profile</RouterLink>
@@ -108,7 +113,6 @@ function doLogout() {
   router.push({ name: "Home" });
 }
 
-// Close menus when clicking outside or on route change
 function onDocClick(e) {
   const a = adminRef.value, u = userRef.value;
   if (a && !a.contains(e.target)) adminOpen.value = false;

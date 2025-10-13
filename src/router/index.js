@@ -25,6 +25,9 @@ const routes = [
   { path: "/about", name: "About", component: AboutView },
   { path: "/contact", name: "Contact", component: ContactView },
   { path: "/map", name: "ProgramsMap", component: () => import("../views/ProgramsMapView.vue") },
+  { path: "/bookings", name: "Bookings", component: () => import("../views/BookingsView.vue") },
+  { path: "/bookings/mine", name: "MyBookings", component: () => import("../views/MyBookingsView.vue") },
+  { path: "/admin/bookings", name: "AdminBookings", component: () => import("../views/AdminBookingsView.vue") },
 
   { path: "/profile", name: "Profile", component: ProfileView, meta: { requiresAuth: true } },
 
