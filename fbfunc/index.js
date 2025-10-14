@@ -1,84 +1,65 @@
 ﻿// fbfunc/index.js
-const { onRequest } = require('firebase-functions/v2/https');
-const logger = require('firebase-functions/logger');
-const admin = require('firebase-admin');
+// Firebase Functions v2 (2nd gen)
+const { onRequest } = require("firebase-functions/v2/https");
+const admin = require("firebase-admin");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 
-try { admin.app(); } catch { admin.initializeApp(); }
+admin.initializeApp();
 
-function setCors(res) {
-  res.set({
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-    'Cache-Control': 'public, max-age=60',
-  });
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  // add your prod domain when deployed, e.g.:
+  // "https://your-cloudflare-pages-domain.pages.dev"
+];
+
+// Minimal CORS wrapper for onRequest functions
+function withCors(handler) {
+  return async (req, res) => {
+    const origin = req.headers.origin;
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      res.set("Access-Control-Allow-Origin", origin);
+    }
+    res.set("Vary", "Origin");
+    res.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    if (req.method === "OPTIONS") {
+      // Preflight
+      return res.status(204).send("");
+    }
+    return handler(req, res);
+  };
 }
 
-exports.publicPrograms = onRequest({ region: 'australia-southeast2', cors: false }, async (req, res) => {
-  setCors(res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+exports.createBooking = onRequest(
+  { region: "australia-southeast2" },
+  withCors(async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Use POST" });
+    }
 
-  try {
-    const { limit = '50', suburb } = req.query;
-    let ref = admin.firestore().collection('programs');
-    const q = suburb ? ref.where('suburb', '==', String(suburb)) : ref;
-    const snap = await q.limit(Math.min(parseInt(limit, 10) || 50, 200)).get();
+    try {
+      const db = getFirestore();
+      const { uid, programId, start, end } = req.body || {};
 
-    const programs = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(p => p.active !== false)
-      .map(p => ({
-        id: p.id,
-        title: p.title || '',
-        type: p.type || '',
-        days: Array.isArray(p.days) ? p.days : [],
-        suburb: p.suburb || '',
-        address: p.address || '',
-        lat: Number.isFinite(Number(p.lat)) ? Number(p.lat) : null,
-        lng: Number.isFinite(Number(p.lng)) ? Number(p.lng) : null,
-        capacity: Number.isFinite(Number(p.capacity)) ? Number(p.capacity) : null,
-      }));
+      if (!uid || !programId || !start || !end) {
+        return res.status(400).json({ error: "Missing uid, programId, start, end" });
+      }
 
-    return res.json({ ok: true, count: programs.length, programs });
-  } catch (e) {
-    logger.error(e);
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
+      // TODO: (optional) add conflict checks for the selected time/program
 
-exports.publicProgram = onRequest({ region: 'australia-southeast2', cors: false }, async (req, res) => {
-  setCors(res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+      const docRef = await db.collection("bookings").add({
+        uid,
+        programId,
+        start,
+        end,
+        createdAt: FieldValue.serverTimestamp(),
+      });
 
-  try {
-    const id = String(req.query.id || '');
-    if (!id) return res.status(400).json({ ok: false, error: 'Missing ?id' });
-
-    const doc = await admin.firestore().collection('programs').doc(id).get();
-    if (!doc.exists) return res.status(404).json({ ok: false, error: 'Not found' });
-
-    const p = doc.data();
-    if (p.active === false) return res.status(404).json({ ok: false, error: 'Not found' });
-
-    const program = {
-      id: doc.id,
-      title: p.title || '',
-      type: p.type || '',
-      days: Array.isArray(p.days) ? p.days : [],
-      suburb: p.suburb || '',
-      address: p.address || '',
-      lat: Number.isFinite(Number(p.lat)) ? Number(p.lat) : null,
-      lng: Number.isFinite(Number(p.lng)) ? Number(p.lng) : null,
-      capacity: Number.isFinite(Number(p.capacity)) ? Number(p.capacity) : null,
-      description: p.description || '',
-    };
-
-    return res.json({ ok: true, program });
-  } catch (e) {
-    logger.error(e);
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
-  }
-});
+      return res.status(200).json({ ok: true, id: docRef.id });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: e?.message || "Server error" });
+    }
+  })
+);
