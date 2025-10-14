@@ -1,15 +1,10 @@
 // src/services/emailService.js
+// Works with your Cloudflare Pages Function at /api/send-email
+
 const API_BASE = import.meta.env.DEV ? "http://127.0.0.1:8788" : "";
 
+/** Low-level sender (single request). Accepts a single email or an array. */
 export async function sendEmailViaHttp({ to, subject, html, file }) {
-  // ✅ accept single email OR comma-separated string OR array
-  const toList = Array.isArray(to)
-    ? to.filter(Boolean).map(String)
-    : String(to || "")
-        .split(",")
-        .map(s => s.trim())
-        .filter(Boolean);
-
   let attachment;
   if (file instanceof File) {
     const base64 = await new Promise((resolve, reject) => {
@@ -25,12 +20,8 @@ export async function sendEmailViaHttp({ to, subject, html, file }) {
     };
   }
 
-  const payload = {
-    to: toList,
-    subject,
-    html,
-    ...(attachment ? { attachment } : {}),
-  };
+  // allow string OR array for "to" (your CF function supports arrays)
+  const payload = { to, subject, html, ...(attachment ? { attachment } : {}) };
 
   const res = await fetch(`${API_BASE}/api/send-email`, {
     method: "POST",
@@ -43,4 +34,24 @@ export async function sendEmailViaHttp({ to, subject, html, file }) {
     throw new Error(`HTTP ${res.status} ${detail}`);
   }
   return res.json();
+}
+
+/** High-level bulk helper: paste emails (comma/newline) or pass an array. */
+export async function sendBulkEmails({ recipients, subject, html, file }) {
+  // normalize string -> array (split by comma or newline)
+  const list = Array.isArray(recipients)
+    ? recipients
+    : String(recipients || "")
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+  if (list.length === 0) throw new Error("No recipients provided.");
+
+  // Send in chunks so one request can hit multiple recipients
+  const CHUNK = 400; // conservative chunk size
+  for (let i = 0; i < list.length; i += CHUNK) {
+    const chunk = list.slice(i, i + CHUNK);
+    await sendEmailViaHttp({ to: chunk, subject, html, file });
+  }
 }
